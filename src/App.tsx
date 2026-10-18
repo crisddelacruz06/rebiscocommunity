@@ -600,8 +600,15 @@ function AdminDashboard({
   error: string
   notice: string
 }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all')
   const published = articles.filter((article) => article.status === 'published').length
   const drafts = articles.length - published
+  const filteredArticles = articles.filter((article) => {
+    const term = searchTerm.trim().toLowerCase()
+    const matchesSearch = !term || [article.title, article.slug, article.team, article.category, article.excerpt, article.body].some(value => value.toLowerCase().includes(term))
+    return matchesSearch && (statusFilter === 'all' || article.status === statusFilter)
+  })
 
   return (
     <div className="admin-shell">
@@ -630,12 +637,20 @@ function AdminDashboard({
             <div className="admin-stat"><span>PUBLISHED</span><strong>{published}</strong><CheckCircle2 size={22} /></div>
             <div className="admin-stat"><span>DRAFTS</span><strong>{drafts}</strong><FilePenLine size={22} /></div>
           </div>
-          <div className="admin-list-heading"><div><h2>ALL ARTICLES</h2><span>{articles.length} total records</span></div><button className="button button-outline button-small" onClick={onRefresh} disabled={busy}>REFRESH <ArrowRight size={15} /></button></div>
+          <div className="admin-list-heading"><div><h2>ALL ARTICLES</h2><span>{filteredArticles.length} shown · {articles.length} total records</span></div><button className="button button-outline button-small" onClick={onRefresh} disabled={busy}>REFRESH <ArrowRight size={15} /></button></div>
+          <div className="admin-filter-bar">
+            <label className="admin-search-field"><Search size={17} /><span className="sr-only">Search articles</span><input type="search" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Search headline, team, category, slug…" /></label>
+            <label className="admin-filter-select"><span>Status</span><select value={statusFilter} onChange={event => setStatusFilter(event.target.value as 'all' | 'published' | 'draft')}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option></select></label>
+            {(searchTerm || statusFilter !== 'all') && <button className="button button-outline button-small" onClick={() => { setSearchTerm(''); setStatusFilter('all') }}>CLEAR FILTERS</button>}
+          </div>
+          <p className="admin-results-status" role="status" aria-live="polite">Showing {filteredArticles.length} of {articles.length} articles.</p>
           {busy ? <div className="empty-state"><span className="loading-spinner" /><p>Loading articles…</p></div> : articles.length === 0 ? (
             <div className="empty-state admin-empty"><div className="empty-icon"><Newspaper size={30} /></div><h3>Your newsroom is ready.</h3><p>Create your first verified article. Save it as a draft or publish it to the public feed.</p><button className="button button-primary" onClick={onCreate}><Plus size={17} /> CREATE FIRST ARTICLE</button></div>
+          ) : filteredArticles.length === 0 ? (
+            <div className="empty-state admin-empty"><div className="empty-icon"><Search size={28} /></div><h3>No matching articles.</h3><p>Try another keyword or change the publication status filter.</p><button className="button button-outline" onClick={() => { setSearchTerm(''); setStatusFilter('all') }}>CLEAR FILTERS</button></div>
           ) : (
             <div className="admin-article-list">
-              {articles.map((article) => (
+              {filteredArticles.map((article) => (
                 <article className="admin-article-row" key={article.id}>
                   <div className="admin-row-image">{article.image_url ? <img src={article.image_url} alt="" /> : <Volleyball size={27} />}</div>
                   <div className="admin-row-copy"><div className="admin-row-meta"><span className={`status-pill status-${article.status}`}>{article.status}</span><span>{TEAM_SHORT[article.team]}</span><span>{article.category}</span></div><h3>{article.title}</h3><p>{article.excerpt}</p><small>Updated {formatDate(article.updated_at)}</small></div>
@@ -676,6 +691,7 @@ function ArticleEditor({
     status: article.status,
   } : EMPTY_FORM)
   const [slugEdited, setSlugEdited] = useState(Boolean(article))
+  const [imagePreviewError, setImagePreviewError] = useState(false)
   const [validationError, setValidationError] = useState('')
 
   function change<K extends keyof ArticleForm>(key: K, value: ArticleForm[K]) {
@@ -713,7 +729,8 @@ function ArticleEditor({
           </div>
           <label>Short summary *<textarea required minLength={10} maxLength={400} rows={3} value={form.excerpt} onChange={(event) => change('excerpt', event.target.value)} placeholder="Summarize the story in 1–3 sentences." /><small>{form.excerpt.length}/400 characters</small></label>
           <label>Article body *<textarea required minLength={20} maxLength={30000} rows={9} value={form.body} onChange={(event) => change('body', event.target.value)} placeholder="Write the article in plain text. Verify names, dates, scores, and quotations before publishing." /><small>{form.body.length}/30,000 characters</small></label>
-          <label>Cover image URL (optional)<input type="url" value={form.image_url} onChange={(event) => change('image_url', event.target.value)} placeholder="https://example.com/authorized-image.jpg" /></label>
+          <label>Cover image URL (optional)<input type="url" value={form.image_url} onChange={(event) => { setImagePreviewError(false); change('image_url', event.target.value) }} placeholder="https://example.com/authorized-image.jpg" /></label>
+          {form.image_url && <div className="editor-image-preview" aria-live="polite">{imagePreviewError ? <p role="status">Image preview unavailable. Check the URL and public image permissions.</p> : <><span>IMAGE PREVIEW</span><img src={form.image_url} alt="Preview of article cover image" onError={() => setImagePreviewError(true)} /></>}</div>}
           <label>Original source URL (recommended)<input type="url" value={form.source_url} onChange={(event) => change('source_url', event.target.value)} placeholder="https://official-source.example/article" /></label>
           <label>Publication status *<select value={form.status} onChange={(event) => change('status', event.target.value as ArticleForm['status'])}><option value="draft">Draft — visible to editors only</option><option value="published">Published — visible to everyone</option></select></label>
           {validationError && <div className="form-error" role="alert">{validationError}</div>}
@@ -834,6 +851,7 @@ function SectionContentEditor({
     sort_order: String(item.sort_order ?? 0),
   } : EMPTY_SECTION_FORM)
   const [slugEdited, setSlugEdited] = useState(Boolean(item))
+  const [imagePreviewError, setImagePreviewError] = useState(false)
   const [validationError, setValidationError] = useState('')
   const metadataValues = readMetadataObject(form.metadata)
   const metadataFields = SECTION_FORM_FIELDS[form.section] ?? []
@@ -904,9 +922,10 @@ function SectionContentEditor({
           <label>Short summary<textarea rows={3} maxLength={600} value={form.summary} onChange={event => change('summary', event.target.value)} placeholder="A short introduction shown in listings." /></label>
           <label>Content / details<textarea rows={7} maxLength={30000} value={form.body} onChange={event => change('body', event.target.value)} placeholder="Add verified information. For schedules or stats, include season and source details." /></label>
           <div className="form-two-col">
-            <label>Image URL<input type="url" value={form.image_url} onChange={event => change('image_url', event.target.value)} placeholder="https://..." /></label>
+            <label>Image URL<input type="url" value={form.image_url} onChange={event => { setImagePreviewError(false); change('image_url', event.target.value) }} placeholder="https://..." /></label>
             <label>External / official URL<input type="url" value={form.external_url} onChange={event => change('external_url', event.target.value)} placeholder="https://..." /></label>
           </div>
+          {form.image_url && <div className="editor-image-preview" aria-live="polite">{imagePreviewError ? <p role="status">Image preview unavailable. Check the URL and public image permissions.</p> : <><span>IMAGE PREVIEW</span><img src={form.image_url} alt="Preview of section content image" onError={() => setImagePreviewError(true)} /></>}</div>}
           {metadataFields.length > 0 && (
             <section className="metadata-fields-panel" aria-labelledby="metadata-fields-title">
               <div className="metadata-fields-heading">
@@ -975,7 +994,15 @@ function SectionContentDashboard({
   onLogout: () => void
 }) {
   const [sectionFilter, setSectionFilter] = useState<ContentSection | 'all'>('all')
-  const visibleItems = items.filter(item => sectionFilter === 'all' || item.section === sectionFilter)
+  const [sectionSearch, setSectionSearch] = useState('')
+  const [sectionStatus, setSectionStatus] = useState<'all' | 'published' | 'draft'>('all')
+  const visibleItems = items.filter(item => {
+    const term = sectionSearch.trim().toLowerCase()
+    const matchesSection = sectionFilter === 'all' || item.section === sectionFilter
+    const matchesStatus = sectionStatus === 'all' || item.status === sectionStatus
+    const matchesSearch = !term || [item.title, item.slug, item.summary, item.body, item.section, item.external_url ?? '', JSON.stringify(item.metadata ?? {})].some(value => value.toLowerCase().includes(term))
+    return matchesSection && matchesStatus && matchesSearch
+  })
   const publishedCount = items.filter(item => item.status === 'published').length
   const draftCount = items.length - publishedCount
   const sectionLabel = (value: string) => CONTENT_SECTIONS.find(section => section.value === value)?.label ?? value
@@ -1000,8 +1027,15 @@ function SectionContentDashboard({
           {notice && <div className="notice notice-success" role="status"><CheckCircle2 size={19} />{notice}</div>}
           {error && <div className="notice notice-warning" role="alert"><ShieldCheck size={19} />{error}</div>}
           <div className="admin-stat-grid"><div className="admin-stat"><span>TOTAL CONTENT</span><strong>{items.length}</strong><FilePenLine size={22} /></div><div className="admin-stat"><span>PUBLISHED</span><strong>{publishedCount}</strong><CheckCircle2 size={22} /></div><div className="admin-stat"><span>DRAFTS</span><strong>{draftCount}</strong><Newspaper size={22} /></div></div>
-          <div className="section-manager-controls"><label className="select-field"><Filter size={16} /><select aria-label="Filter by website section" value={sectionFilter} onChange={event => setSectionFilter(event.target.value as ContentSection | 'all')}><option value="all">All website sections</option>{CONTENT_SECTIONS.map(section => <option key={section.value} value={section.value}>{section.label}</option>)}</select><ChevronDown size={15} /></label><button className="button button-outline button-small" onClick={onRefresh} disabled={loading}>REFRESH <ArrowRight size={15} /></button></div>
-          <div className="admin-list-heading"><div><h2>CONTENT ITEMS</h2><span>{visibleItems.length} records shown</span></div></div>
+          <div className="section-manager-controls">
+            <label className="admin-search-field"><Search size={17} /><span className="sr-only">Search website content</span><input type="search" value={sectionSearch} onChange={event => setSectionSearch(event.target.value)} placeholder="Search title, slug, summary, metadata…" /></label>
+            <label className="select-field"><Filter size={16} /><select aria-label="Filter by website section" value={sectionFilter} onChange={event => setSectionFilter(event.target.value as ContentSection | 'all')}><option value="all">All website sections</option>{CONTENT_SECTIONS.map(section => <option key={section.value} value={section.value}>{section.label}</option>)}</select><ChevronDown size={15} /></label>
+            <label className="admin-filter-select"><span>Status</span><select aria-label="Filter by publication status" value={sectionStatus} onChange={event => setSectionStatus(event.target.value as 'all' | 'published' | 'draft')}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option></select></label>
+            {(sectionSearch || sectionFilter !== 'all' || sectionStatus !== 'all') && <button className="button button-outline button-small" onClick={() => { setSectionSearch(''); setSectionFilter('all'); setSectionStatus('all') }}>CLEAR FILTERS</button>}
+            <button className="button button-outline button-small" onClick={onRefresh} disabled={loading}>REFRESH <ArrowRight size={15} /></button>
+          </div>
+          <div className="admin-list-heading"><div><h2>CONTENT ITEMS</h2><span>{visibleItems.length} of {items.length} records shown</span></div></div>
+          <p className="admin-results-status" role="status" aria-live="polite">Showing {visibleItems.length} of {items.length} content items.</p>
           {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading website content…</p></div> : visibleItems.length === 0 ? <div className="empty-state"><div className="empty-icon"><FilePenLine size={30} /></div><h3>No content in this view yet.</h3><p>Create a content item for a section. Drafts remain private; published records become available to public pages once connected.</p><button className="button button-primary" onClick={onCreate}><Plus size={17} /> CREATE CONTENT</button></div> : <div className="admin-article-list">{visibleItems.map(item => <article className="admin-article-row" key={item.id}><div className="admin-row-image">{item.image_url ? <img src={item.image_url} alt="" /> : <FilePenLine size={25} />}</div><div className="admin-row-copy"><div className="admin-row-meta"><span className={`status-pill status-${item.status}`}>{item.status}</span><span>{sectionLabel(item.section)}</span>{item.featured && <span className="status-pill status-featured">FEATURED</span>}</div><h3>{item.title}</h3><p>{item.summary || item.body.slice(0, 150) || 'No summary added.'}</p><small>/{item.section}/{item.slug} · Updated {formatDate(item.updated_at)}</small></div><div className="admin-row-actions"><button className="icon-button" onClick={() => onEdit(item)} aria-label={`Edit ${item.title}`}><FilePenLine size={18} /></button><button className="icon-button danger-icon" onClick={() => onDelete(item)} aria-label={`Delete ${item.title}`}><Trash2 size={18} /></button></div></article>)}</div>}
           <p className="admin-security-note"><ShieldCheck size={16} /> This manager uses the existing Supabase admin allowlist and section_content RLS policies.</p>
         </div>

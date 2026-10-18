@@ -2832,3 +2832,45 @@ textarea:focus-visible {
   .metadata-fields-panel { padding: 13px; }
   .metadata-fields-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phase 2F: newsroom search, filters, and image previews */
+.admin-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 6px;
+}
+.admin-search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 280px;
+  min-width: 180px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 2px solid var(--court-black);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+}
+.admin-search-field:focus-within { border-color: var(--titan-purple); box-shadow: 0 0 0 3px rgba(121,84,207,.15); }
+.admin-search-field input {
+  width: 100%; min-width: 0; border: 0; outline: 0; background: transparent;
+  color: var(--court-black); font: inherit; font-size: 12px;
+}
+.admin-filter-select { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.admin-filter-select span { color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.admin-filter-select select { min-height: 43px; padding: 0 28px 0 12px; border: 2px solid var(--court-black); border-radius: 999px; background: var(--white); color: var(--court-black); font-size: 12px; }
+.admin-results-status { margin: 8px 0 14px; color: var(--muted); font-size: 10px; }
+.editor-image-preview { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--paper); }
+.editor-image-preview > span { color: var(--muted); font-size: 9px; font-weight: 1000; letter-spacing: .1em; }
+.editor-image-preview img { display: block; width: 100%; max-height: 260px; object-fit: contain; border-radius: 9px; background: var(--paper-deep); }
+.editor-image-preview p { margin: 0; color: #76133E; font-size: 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 650px) {
+  .admin-filter-bar { align-items: stretch; flex-direction: column; }
+  .admin-search-field { flex-basis: auto; width: 100%; }
+  .admin-filter-select { justify-content: space-between; }
+  .admin-filter-select select { flex: 1; }
+}
