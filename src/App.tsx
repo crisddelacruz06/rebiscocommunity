@@ -1260,6 +1260,93 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
   tickets: { title: 'TICKETS & ATTENDANCE', accent: 'BE THERE FOR THE NEXT RALLY.', eyebrow: 'PLAN YOUR GAME DAY', description: 'Use official event and ticketing sources to check availability, venue details, and prices. REBISCOmmunity does not sell tickets directly.', icon: ExternalLink, status: 'Official ticket links will be listed when verified' },
 }
 
+const STRUCTURED_FIELDS: Record<string, { key: string; label: string }[]> = {
+  schedule: [
+    { key: 'match_date', label: 'Match date' }, { key: 'date', label: 'Date' },
+    { key: 'start_time', label: 'Start time' }, { key: 'venue', label: 'Venue' },
+    { key: 'home_team', label: 'Home team' }, { key: 'away_team', label: 'Away team' },
+    { key: 'opponent', label: 'Opponent' }, { key: 'competition', label: 'Competition' },
+    { key: 'season', label: 'Season' }, { key: 'status', label: 'Match status' },
+  ],
+  standings: [
+    { key: 'rank', label: 'Rank' }, { key: 'position', label: 'Position' },
+    { key: 'team', label: 'Team' }, { key: 'played', label: 'Played' },
+    { key: 'won', label: 'Won' }, { key: 'lost', label: 'Lost' },
+    { key: 'drawn', label: 'Drawn' }, { key: 'points', label: 'Points' },
+    { key: 'sets_won', label: 'Sets won' }, { key: 'sets_lost', label: 'Sets lost' },
+    { key: 'season', label: 'Season' }, { key: 'competition', label: 'Competition' },
+  ],
+  players: [
+    { key: 'player_name', label: 'Player' }, { key: 'team', label: 'Team' },
+    { key: 'position', label: 'Position' }, { key: 'jersey_number', label: 'Jersey number' },
+    { key: 'number', label: 'Jersey number' }, { key: 'nationality', label: 'Nationality' },
+    { key: 'season', label: 'Season' },
+  ],
+  stats: [
+    { key: 'player', label: 'Player' }, { key: 'team', label: 'Team' },
+    { key: 'metric', label: 'Statistic' }, { key: 'statistic', label: 'Statistic' },
+    { key: 'value', label: 'Value' }, { key: 'unit', label: 'Unit' },
+    { key: 'season', label: 'Season' }, { key: 'competition', label: 'Competition' },
+    { key: 'source', label: 'Source' },
+  ],
+  recaps: [
+    { key: 'match_date', label: 'Match date' }, { key: 'team', label: 'Team' },
+    { key: 'opponent', label: 'Opponent' }, { key: 'score', label: 'Final score' },
+    { key: 'competition', label: 'Competition' }, { key: 'season', label: 'Season' },
+  ],
+  live: [
+    { key: 'match', label: 'Match' }, { key: 'status', label: 'Coverage status' },
+    { key: 'start_time', label: 'Start time' }, { key: 'competition', label: 'Competition' },
+  ],
+  videos: [
+    { key: 'video_type', label: 'Video type' }, { key: 'duration', label: 'Duration' },
+    { key: 'team', label: 'Team' }, { key: 'published_date', label: 'Published' },
+    { key: 'credit', label: 'Source / credit' },
+  ],
+  photos: [
+    { key: 'event', label: 'Event' }, { key: 'photo_date', label: 'Photo date' },
+    { key: 'photographer', label: 'Photographer' }, { key: 'credit', label: 'Photo credit' },
+  ],
+  tickets: [
+    { key: 'event_date', label: 'Event date' }, { key: 'venue', label: 'Venue' },
+    { key: 'organizer', label: 'Organizer' }, { key: 'ticket_status', label: 'Ticket status' },
+  ],
+}
+
+function displayMetadataValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return ''
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (Array.isArray(value)) return value.map(entry => String(entry)).join(', ')
+  return JSON.stringify(value)
+}
+
+function SectionMetadata({ section, metadata }: { section: string; metadata: Record<string, unknown> }) {
+  const fields = STRUCTURED_FIELDS[section] ?? []
+  const usedKeys = new Set<string>()
+  const values = fields.flatMap(field => {
+    const value = metadata?.[field.key]
+    const text = displayMetadataValue(value)
+    if (!text || usedKeys.has(field.key)) return []
+    usedKeys.add(field.key)
+    return [{ key: field.key, label: field.label, value: text }]
+  })
+  // For general-purpose sections, show safe, simple metadata instead of silently hiding it.
+  const visibleValues = values.length ? values : Object.entries(metadata ?? {})
+    .filter(([key, value]) => !['internal_notes', 'private_notes'].includes(key.toLowerCase()) && displayMetadataValue(value))
+    .slice(0, 6)
+    .map(([key, value]) => ({ key, label: key.replace(/[_-]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()), value: displayMetadataValue(value) }))
+  if (!visibleValues.length) return null
+  return (
+    <dl className="section-metadata-grid">
+      {visibleValues.map(field => (
+        <div className="section-metadata-field" key={field.key}>
+          <dt>{field.label}</dt><dd>{field.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
 function SectionPage({ sectionKey }: { sectionKey: string }) {
   const config = SECTION_CONFIG[sectionKey]
   const Icon = config.icon
@@ -1325,6 +1412,7 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
                     {item.featured && <span className="status-pill status-featured">FEATURED</span>}
                     <h2>{item.title}</h2>
                     {item.summary && <p>{item.summary}</p>}
+                    <SectionMetadata section={sectionKey} metadata={item.metadata ?? {}} />
                     {item.body && <p className="published-content-body">{item.body}</p>}
                     {item.external_url && <a className="read-link" href={item.external_url} target="_blank" rel="noopener noreferrer">OFFICIAL / MORE INFO <ExternalLink size={15} /></a>}
                   </div>

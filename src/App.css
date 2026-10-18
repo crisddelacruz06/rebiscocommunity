@@ -2707,3 +2707,40 @@ textarea:focus-visible {
   .published-home-section { padding-top: 42px; }
   .published-content-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Phase 2D: readable structured fields for schedules, standings, profiles, and stats */
+.section-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+  padding: 0;
+}
+.section-metadata-field {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--volley-cream);
+}
+.section-metadata-field dt {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+.section-metadata-field dd {
+  margin: 0;
+  color: var(--court-black);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .section-metadata-grid { grid-template-columns: 1fr; }
+}
