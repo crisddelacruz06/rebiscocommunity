@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight,
- CheckCircle2, ChevronDown, CircleUserRound,
-  ExternalLink, Eye, FilePenLine, Filter, LockKeyhole,
+  CalendarDays, CheckCircle2, ChevronDown, CircleUserRound, Clock3,
+  ExternalLink, Eye, FilePenLine, Filter, LockKeyhole, MapPin,
   LogOut, Menu, Newspaper, Plus, Search, ShieldCheck,
   Sparkles, Trash2, Trophy, Volleyball, X
 } from 'lucide-react'
@@ -193,6 +193,7 @@ function Header({ admin = false }: { admin?: boolean }) {
             <a href="/players" onClick={() => setMenuOpen(false)}>PLAYERS</a>
             <a href="/standings" onClick={() => setMenuOpen(false)}>STANDINGS</a>
             <a href="/schedule" onClick={() => setMenuOpen(false)}>SCHEDULE</a>
+            <a href="/match-center" onClick={() => setMenuOpen(false)}>MATCH CENTER</a>
             <a href="/recaps" onClick={() => setMenuOpen(false)}>RECAPS</a>
             <a href="/live" onClick={() => setMenuOpen(false)}>LIVE</a>
             <a href="/videos" onClick={() => setMenuOpen(false)}>VIDEOS</a>
@@ -480,7 +481,7 @@ function PublicHome() {
           </div>
         </section>
 
-        <section className="home2-explore" aria-labelledby="home2-explore-title"><div className="site-container"><div className="home2-explore-intro"><span className="home2-section-kicker">YOUR NEXT STOP</span><h2 id="home2-explore-title">MORE WAYS TO<br /><em>LIVE THE GAME.</em></h2><p>From match-day details to player stories, keep your volleyball tabs open in one place.</p></div><div className="home2-explore-links"><a href="/schedule"><span className="home2-explore-icon"><Trophy size={22} /></span><span><strong>Schedule & standings</strong><small>Keep up with the competition</small></span><ArrowUpRight size={18} /></a><a href="/players"><span className="home2-explore-icon"><CircleUserRound size={22} /></span><span><strong>Players & stats</strong><small>Meet the athletes behind the plays</small></span><ArrowUpRight size={18} /></a><a href="/recaps"><span className="home2-explore-icon"><Newspaper size={22} /></span><span><strong>Recaps & highlights</strong><small>Catch up on the action</small></span><ArrowUpRight size={18} /></a><a href="/videos"><span className="home2-explore-icon"><Eye size={22} /></span><span><strong>Videos & photos</strong><small>Relive the moments</small></span><ArrowUpRight size={18} /></a></div></div></section>
+        <section className="home2-explore" aria-labelledby="home2-explore-title"><div className="site-container"><div className="home2-explore-intro"><span className="home2-section-kicker">YOUR NEXT STOP</span><h2 id="home2-explore-title">MORE WAYS TO<br /><em>LIVE THE GAME.</em></h2><p>From match-day details to player stories, keep your volleyball tabs open in one place.</p></div><div className="home2-explore-links"><a href="/match-center"><span className="home2-explore-icon"><Trophy size={22} /></span><span><strong>Match Center</strong><small>Fixtures, results, and match details</small></span><ArrowUpRight size={18} /></a><a href="/players"><span className="home2-explore-icon"><CircleUserRound size={22} /></span><span><strong>Players & stats</strong><small>Meet the athletes behind the plays</small></span><ArrowUpRight size={18} /></a><a href="/recaps"><span className="home2-explore-icon"><Newspaper size={22} /></span><span><strong>Recaps & highlights</strong><small>Catch up on the action</small></span><ArrowUpRight size={18} /></a><a href="/videos"><span className="home2-explore-icon"><Eye size={22} /></span><span><strong>Videos & photos</strong><small>Relive the moments</small></span><ArrowUpRight size={18} /></a></div></div></section>
 
         <section className="home2-community-cta"><div className="site-container home2-cta-inner"><div className="home2-cta-ball"><Volleyball size={46} /></div><div><span className="home2-section-kicker">MORE THAN A SCORELINE</span><h2>THE GAME IS BETTER<br />WHEN WE <em>SHARE IT.</em></h2><p>For the fans who live every rally. Welcome to your community.</p></div><a className="home2-button home2-button-pink" href="/news">Back to the buzz <ArrowUpRight size={17} /></a></div></section>
       </main>
@@ -1401,7 +1402,7 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
   },
   players: { title: 'PLAYER DESK', accent: 'THE PEOPLE BEHIND THE PLAYS.', eyebrow: 'PLAYER PROFILES', description: 'A home for player profiles, team affiliations, and stories. Profiles will be added as information is verified from reliable sources.', icon: CircleUserRound, status: 'Player profiles are not connected yet' },
   standings: { title: 'STANDINGS', accent: 'EVERY SET COUNTS.', eyebrow: 'COMPETITION TRACKER', description: 'Follow the race through the standings. Rankings will be published only when competition, season, and source data can be verified.', icon: Trophy, status: 'Verified standings data is not connected yet' },
-  schedule: { title: 'MATCH SCHEDULE', accent: 'SAVE THE DATE. BRING THE NOISE.', eyebrow: 'UP NEXT', description: 'A match-day hub for upcoming fixtures, start times, and venues. Check official league and team channels before making plans.', icon: Newspaper, status: 'Verified schedule data is not connected yet' },
+  schedule: { title: 'MATCH SCHEDULE', accent: 'SAVE THE DATE. BRING THE NOISE.', eyebrow: 'UP NEXT', description: 'Browse published fixtures, match details, and results. Check official league and team channels before making plans.', icon: Newspaper, status: 'No published fixtures are available yet' },
   recaps: { title: 'MATCH RECAPS', accent: 'RELIVE EVERY RALLY.', eyebrow: 'AFTER THE FINAL WHISTLE', description: 'Match reports and post-game stories belong here. Browse published articles while recap-specific tagging is being developed.', icon: ArrowUpRight, status: 'Recap articles will appear as they are published' },
   live: { title: 'LIVE CENTER', accent: 'MATCH DAY, ALL THE ENERGY.', eyebrow: 'LIVE COVERAGE', description: 'This page will host verified live links and match-day updates when available. No match is marked live unless coverage is confirmed.', icon: Sparkles, status: 'No verified live coverage is connected right now' },
   videos: { title: 'VIDEO ZONE', accent: 'BIG PLAYS. BIG FEELINGS.', eyebrow: 'WATCH', description: 'A curated home for authorized highlights, interviews, and volleyball videos from official or otherwise permitted sources.', icon: Eye, status: 'Video sources have not been connected yet' },
@@ -1417,6 +1418,9 @@ const STRUCTURED_FIELDS: Record<string, { key: string; label: string }[]> = {
     { key: 'home_team', label: 'Home team' }, { key: 'away_team', label: 'Away team' },
     { key: 'opponent', label: 'Opponent' }, { key: 'competition', label: 'Competition' },
     { key: 'season', label: 'Season' }, { key: 'status', label: 'Match status' },
+    { key: 'home_score', label: 'Home score / sets' }, { key: 'away_score', label: 'Away score / sets' },
+    { key: 'round', label: 'Round' }, { key: 'broadcast', label: 'Broadcast / coverage' },
+    { key: 'source_url', label: 'Official match source URL' },
   ],
   standings: [
     { key: 'rank', label: 'Rank' }, { key: 'position', label: 'Position' },
@@ -1544,7 +1548,7 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
             <h1>{config.title}<br /><span>{config.accent}</span></h1>
             <p>{config.description}</p>
             <div className="section-page-actions">
-              <a className="button button-primary" href="/news">LATEST NEWS <ArrowUpRight size={17} /></a>
+              <a className="button button-primary" href={sectionKey === 'schedule' ? '/match-center' : '/news'}>{sectionKey === 'schedule' ? 'OPEN MATCH CENTER' : 'LATEST NEWS'} <ArrowUpRight size={17} /></a>
               <a className="button button-outline" href="/teams">EXPLORE OUR TEAMS <ArrowRight size={17} /></a>
             </div>
           </div>
@@ -1603,10 +1607,235 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
   )
 }
 
+type MatchFilter = 'all' | 'upcoming' | 'results'
+
+function metadataText(metadata: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = metadata?.[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return ''
+}
+
+function matchDateValue(item: SectionContent): string {
+  return metadataText(item.metadata ?? {}, 'match_date', 'date', 'event_date')
+}
+
+function matchTimestamp(item: SectionContent): number {
+  const value = matchDateValue(item)
+  if (!value) return Number.POSITIVE_INFINITY
+  const time = Date.parse(value)
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+}
+
+function isCompletedMatch(item: SectionContent): boolean {
+  const status = metadataText(item.metadata ?? {}, 'status', 'match_status').toLowerCase()
+  return ['final', 'finished', 'completed', 'complete', 'ended'].includes(status)
+    || Boolean(metadataText(item.metadata ?? {}, 'home_score', 'home_sets'))
+      && Boolean(metadataText(item.metadata ?? {}, 'away_score', 'away_sets'))
+      && matchTimestamp(item) < Date.now()
+}
+
+function formatMatchDate(value: string): string {
+  if (!value) return 'Date to be announced'
+  const parsed = new Date(value.length === 10 ? `${value}T12:00:00` : value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('en-PH', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  }).format(parsed)
+}
+
+function MatchCard({ item }: { item: SectionContent }) {
+  const metadata = item.metadata ?? {}
+  const home = metadataText(metadata, 'home_team', 'team') || 'Home team TBA'
+  const away = metadataText(metadata, 'away_team', 'opponent') || 'Opponent TBA'
+  const status = metadataText(metadata, 'status', 'match_status') || (isCompletedMatch(item) ? 'Final' : 'Scheduled')
+  const homeScore = metadataText(metadata, 'home_score', 'home_sets', 'score_home')
+  const awayScore = metadataText(metadata, 'away_score', 'away_sets', 'score_away')
+  const hasScore = homeScore !== '' && awayScore !== ''
+  const time = metadataText(metadata, 'start_time', 'time')
+  const venue = metadataText(metadata, 'venue', 'location')
+  const competition = metadataText(metadata, 'competition', 'league')
+  const matchHref = `/matches/${encodeURIComponent(item.slug)}`
+
+  return (
+    <article className="match-card">
+      <div className="match-card-topline">
+        <span className={`match-status ${isCompletedMatch(item) ? 'match-status-final' : status.toLowerCase().includes('live') ? 'match-status-live' : ''}`}>{status}</span>
+        {competition && <span className="match-competition">{competition}</span>}
+      </div>
+      <p className="match-card-date"><CalendarDays size={15} /> {formatMatchDate(matchDateValue(item))}{time ? ` · ${time}` : ''}</p>
+      <div className="match-teams-score">
+        <div className="match-team-name"><span className="match-team-initial">{home.slice(0, 1).toUpperCase()}</span><strong>{home}</strong></div>
+        <div className="match-score" aria-label={hasScore ? `Score ${homeScore} to ${awayScore}` : 'Score not available'}>
+          {hasScore ? <><span>{homeScore}</span><i>–</i><span>{awayScore}</span></> : <span className="match-vs">VS</span>}
+        </div>
+        <div className="match-team-name"><span className="match-team-initial match-team-initial-away">{away.slice(0, 1).toUpperCase()}</span><strong>{away}</strong></div>
+      </div>
+      {(venue || metadataText(metadata, 'round')) && <div className="match-card-details">{venue && <span><MapPin size={14} />{venue}</span>}{metadataText(metadata, 'round') && <span>{metadataText(metadata, 'round')}</span>}</div>}
+      <a className="match-card-link" href={matchHref}>MATCH DETAILS <ArrowUpRight size={16} /></a>
+    </article>
+  )
+}
+
+function MatchCenterPage({ slug }: { slug?: string }) {
+  const [items, setItems] = useState<SectionContent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [filter, setFilter] = useState<MatchFilter>('all')
+  const [teamFilter, setTeamFilter] = useState('all')
+  const [query, setQuery] = useState('')
+  const [retry, setRetry] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    async function loadMatches() {
+      if (!supabase) {
+        setLoadError('The match service is not configured. Please try again later.')
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      setLoadError('')
+      const { data, error } = await supabase
+        .from('section_content')
+        .select('*')
+        .eq('section', 'schedule')
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+        .lte('published_at', new Date().toISOString())
+        .order('sort_order', { ascending: true })
+        .order('published_at', { ascending: false })
+        .limit(100)
+      if (!active) return
+      if (error) setLoadError('We could not load published matches. Please try again.')
+      else setItems((data ?? []) as SectionContent[])
+      setLoading(false)
+    }
+    void loadMatches()
+    return () => { active = false }
+  }, [retry])
+
+  const sortedItems = useMemo(() => [...items].sort((a, b) => {
+    const aTime = matchTimestamp(a)
+    const bTime = matchTimestamp(b)
+    const aDone = isCompletedMatch(a)
+    const bDone = isCompletedMatch(b)
+    if (aDone !== bDone) return aDone ? 1 : -1
+    return aDone ? bTime - aTime : aTime - bTime
+  }), [items])
+
+  const filteredItems = useMemo(() => sortedItems.filter(item => {
+    const metadata = item.metadata ?? {}
+    const home = metadataText(metadata, 'home_team', 'team')
+    const away = metadataText(metadata, 'away_team', 'opponent')
+    const done = isCompletedMatch(item)
+    if (filter === 'upcoming' && done) return false
+    if (filter === 'results' && !done) return false
+    if (teamFilter !== 'all' && !`${home} ${away} ${item.title}`.toLowerCase().includes(teamFilter)) return false
+    const term = query.trim().toLowerCase()
+    if (term && ![item.title, item.summary, item.body, home, away, metadataText(metadata, 'venue'), metadataText(metadata, 'competition'), JSON.stringify(metadata)].some(value => value.toLowerCase().includes(term))) return false
+    return true
+  }), [sortedItems, filter, teamFilter, query])
+
+  const selectedMatch = slug ? items.find(item => item.slug === slug) : undefined
+
+  return (
+    <>
+      <Header />
+      <main className="match-center-page">
+        <section className="match-center-hero">
+          <div className="site-container match-center-hero-inner">
+            <span className="match-center-kicker"><Volleyball size={16} /> REBISCOmmunity MATCH CENTER</span>
+            <h1>{slug ? 'MATCH DAY.' : 'EVERY MATCH.'}<br /><span>{slug ? 'EVERY DETAIL.' : 'ONE HOME COURT.'}</span></h1>
+            <p>{slug ? 'Match details, published information, and links to official coverage.' : 'Fixtures, published results, and match-day details for the teams you follow.'}</p>
+            <div className="match-center-hero-actions">
+              <a className="button button-primary" href="/schedule"><CalendarDays size={16} /> FULL SCHEDULE</a>
+              <a className="button button-outline" href="/news"><Newspaper size={16} /> LATEST NEWS</a>
+            </div>
+          </div>
+        </section>
+        <section className="site-container match-center-content">
+          {slug ? (
+            loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading match details…</p></div>
+            : loadError ? <div className="notice notice-warning" role="status"><ShieldCheck size={18} /><p>{loadError}</p></div>
+            : selectedMatch ? <MatchDetail item={selectedMatch} />
+            : <div className="section-empty-state"><div className="empty-icon"><CalendarDays size={28} /></div><span className="eyebrow">MATCH NOT FOUND</span><h2>This match is not available.</h2><p>It may not be published yet, or its link may have changed.</p><a className="button button-primary" href="/match-center"><ArrowLeft size={16} /> BACK TO MATCH CENTER</a></div>
+          ) : (
+            <>
+              <div className="match-center-heading"><div><span className="eyebrow">THE FIXTURE BOARD</span><h2>FOLLOW THE <span>FIXTURES.</span></h2><p>Only published schedule entries appear here. Check the linked official source for final confirmation.</p></div><span className="match-center-count">{filteredItems.length} MATCH{filteredItems.length === 1 ? '' : 'ES'}</span></div>
+              <div className="match-center-controls">
+                <label className="match-search"><Search size={17} /><span className="sr-only">Search matches</span><input value={query} onChange={event => setQuery(event.target.value)} type="search" placeholder="Search team, venue, competition…" /></label>
+                <label className="match-team-filter"><span className="sr-only">Filter by team</span><Filter size={16} /><select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="all">All teams</option><option value="creamline">Creamline</option><option value="choco mucho">Choco Mucho</option><option value="criss cross">Criss Cross</option></select></label>
+              </div>
+              <div className="match-filter-tabs" role="group" aria-label="Filter matches">
+                <button type="button" className={filter === 'all' ? 'is-active' : ''} onClick={() => setFilter('all')}>ALL MATCHES</button>
+                <button type="button" className={filter === 'upcoming' ? 'is-active' : ''} onClick={() => setFilter('upcoming')}>UPCOMING</button>
+                <button type="button" className={filter === 'results' ? 'is-active' : ''} onClick={() => setFilter('results')}>RESULTS</button>
+              </div>
+              {loadError && <div className="notice notice-warning" role="status"><ShieldCheck size={18} /><p>{loadError}</p><button className="button button-small" onClick={() => setRetry(value => value + 1)}>TRY AGAIN</button></div>}
+              {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading published matches…</p></div>
+                : filteredItems.length ? <div className="match-center-grid">{filteredItems.map(item => <MatchCard item={item} key={item.id} />)}</div>
+                : <div className="section-empty-state"><div className="empty-icon"><CalendarDays size={28} /></div><span className="eyebrow">NO MATCHES TO SHOW</span><h2>{items.length ? 'Try another filter.' : 'The fixture board is waiting.'}</h2><p>{items.length ? 'Clear your search or choose another team or match category.' : 'Publish a schedule entry in the admin dashboard to add a fixture here. No match dates or scores are invented.'}</p><div className="match-empty-actions"><a className="button button-primary" href="/admin">OPEN THE NEWSROOM <ArrowUpRight size={16} /></a><a className="button button-outline" href="/schedule">VIEW SCHEDULE PAGE <ArrowRight size={16} /></a></div></div>}
+            </>
+          )}
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+function MatchDetail({ item }: { item: SectionContent }) {
+  const metadata = item.metadata ?? {}
+  const home = metadataText(metadata, 'home_team', 'team') || 'Home team TBA'
+  const away = metadataText(metadata, 'away_team', 'opponent') || 'Opponent TBA'
+  const homeScore = metadataText(metadata, 'home_score', 'home_sets', 'score_home')
+  const awayScore = metadataText(metadata, 'away_score', 'away_sets', 'score_away')
+  const status = metadataText(metadata, 'status', 'match_status') || (isCompletedMatch(item) ? 'Final' : 'Scheduled')
+  const date = matchDateValue(item)
+  const time = metadataText(metadata, 'start_time', 'time')
+  const venue = metadataText(metadata, 'venue', 'location')
+  const competition = metadataText(metadata, 'competition', 'league')
+  const sourceUrl = metadataText(metadata, 'source_url', 'official_url') || item.external_url || ''
+  const hasScore = homeScore !== '' && awayScore !== ''
+  return (
+    <article className="match-detail">
+      <a className="match-back-link" href="/match-center"><ArrowLeft size={16} /> ALL MATCHES</a>
+      <div className="match-detail-card">
+        <div className="match-detail-meta"><span className="match-status">{status}</span>{competition && <span>{competition}</span>}{metadataText(metadata, 'season') && <span>{metadataText(metadata, 'season')}</span>}</div>
+        <p className="match-detail-date"><CalendarDays size={17} /> {formatMatchDate(date)}{time ? ` · ${time}` : ''}</p>
+        <h2>{item.title}</h2>
+        {item.summary && <p className="match-detail-summary">{item.summary}</p>}
+        <div className="match-detail-scoreboard">
+          <div><span className="match-detail-team-mark">{home.slice(0, 1).toUpperCase()}</span><strong>{home}</strong></div>
+          <div className="match-detail-score">{hasScore ? <><span>{homeScore}</span><i>–</i><span>{awayScore}</span></> : <span className="match-vs">VS</span>}</div>
+          <div><span className="match-detail-team-mark match-detail-team-away">{away.slice(0, 1).toUpperCase()}</span><strong>{away}</strong></div>
+        </div>
+        <div className="match-detail-facts">
+          {venue && <div><MapPin size={17} /><span><small>VENUE</small><strong>{venue}</strong></span></div>}
+          {time && <div><Clock3 size={17} /><span><small>START TIME</small><strong>{time}</strong></span></div>}
+          {metadataText(metadata, 'round') && <div><Trophy size={17} /><span><small>ROUND</small><strong>{metadataText(metadata, 'round')}</strong></span></div>}
+          {metadataText(metadata, 'broadcast') && <div><Eye size={17} /><span><small>BROADCAST</small><strong>{metadataText(metadata, 'broadcast')}</strong></span></div>}
+        </div>
+        {item.body && <div className="match-detail-body"><h3>ABOUT THIS MATCH</h3><p>{item.body}</p></div>}
+        <div className="match-detail-actions">{sourceUrl && <a className="button button-primary" href={sourceUrl} target="_blank" rel="noopener noreferrer">OFFICIAL MATCH SOURCE <ExternalLink size={16} /></a>}<a className="button button-outline" href="/recaps">MATCH RECAPS <ArrowUpRight size={16} /></a><a className="button button-outline" href="/news">RELATED NEWS <Newspaper size={16} /></a></div>
+        <p className="match-source-note">Match information is based on the published entry. Verify schedules and results with the official league or team source.</p>
+      </div>
+    </article>
+  )
+}
+
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
   if (path === '/admin') return <AdminApp />
   if (path === '/' || path === '/news') return <PublicHome />
+  if (path === '/match-center') return <MatchCenterPage />
+  if (path.startsWith('/matches/')) {
+    const slug = decodeURIComponent(path.slice('/matches/'.length))
+    return slug ? <MatchCenterPage slug={slug} /> : <MatchCenterPage />
+  }
   const sectionKey = path.slice(1)
   if (SECTION_CONFIG[sectionKey]) return <SectionPage sectionKey={sectionKey} />
   return (
