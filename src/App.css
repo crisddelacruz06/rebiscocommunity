@@ -2299,3 +2299,305 @@ textarea:focus-visible {
     padding: 35px 18px;
   }
 }
+
+/* REBISCOmmunity multi-page navigation and section pages */
+.header-inner {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-block: 12px;
+}
+
+.main-nav {
+  flex: 1 1 650px;
+  max-width: 850px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+  padding-block: 8px;
+}
+
+.main-nav > a {
+  white-space: nowrap;
+  font-size: 9px;
+}
+
+.section-page-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(55px, 8vw, 100px);
+  background: var(--titan-purple);
+  color: var(--volley-cream);
+  border-bottom: 2px solid var(--court-black);
+}
+
+.section-page-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 34%;
+  pointer-events: none;
+  opacity: .16;
+  background-image: radial-gradient(var(--volley-cream) 2px, transparent 2px);
+  background-size: 22px 22px;
+}
+
+.section-page-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.section-page-hero .eyebrow {
+  padding: 9px 13px;
+  border: 2px solid var(--court-black);
+  border-radius: 999px;
+  background: var(--king-crunch-orange);
+}
+
+.section-page-hero h1 {
+  max-width: 1000px;
+  margin: 28px 0 20px;
+  font-family: 'Space Grotesk', 'Nunito', sans-serif;
+  font-size: clamp(42px, 7vw, 82px);
+  line-height: .98;
+  letter-spacing: -.065em;
+}
+
+.section-page-hero h1 span {
+  color: var(--smash-pink);
+}
+
+.section-page-hero p {
+  max-width: 700px;
+  color: var(--volley-cream);
+  font-size: 15px;
+  line-height: 1.85;
+}
+
+.section-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 27px;
+}
+
+.section-page-content {
+  min-height: 340px;
+  padding-block: clamp(40px, 7vw, 78px);
+}
+
+.section-team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.section-team-card {
+  position: relative;
+  min-width: 0;
+  padding: 28px;
+  overflow: hidden;
+  border: 2px solid var(--court-black);
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: 5px 6px 0 var(--court-black);
+}
+
+.section-team-card-0 { background: #FBE0EC; }
+.section-team-card-1 { background: #E9E1FA; }
+.section-team-card-2 { background: #FCE4D1; }
+
+.section-team-number {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  color: rgba(32, 35, 43, .17);
+  font-size: 68px;
+  font-weight: 1000;
+  letter-spacing: -.08em;
+}
+
+.section-team-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--court-black);
+  border-radius: 18px;
+  background: var(--volley-cream);
+  box-shadow: 3px 4px 0 var(--court-black);
+}
+
+.section-team-card h2 {
+  position: relative;
+  margin: 30px 0 12px;
+  font-family: 'Space Grotesk', 'Nunito', sans-serif;
+  font-size: 25px;
+  line-height: 1.15;
+  letter-spacing: -.045em;
+}
+
+.section-team-card p {
+  min-height: 75px;
+  color: #514D56;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.section-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 780px;
+  min-height: 280px;
+  margin-inline: auto;
+  padding: clamp(25px, 5vw, 48px);
+  border: 2px dashed var(--titan-purple);
+  border-radius: 25px;
+  background: #EAE3F7;
+  text-align: center;
+}
+
+.section-empty-state .eyebrow {
+  margin-top: 8px;
+}
+
+.section-empty-state h2 {
+  margin: 15px 0 10px;
+  font-size: clamp(22px, 3vw, 32px);
+  letter-spacing: -.04em;
+}
+
+.section-empty-state p {
+  max-width: 600px;
+  margin: 0 0 22px;
+  color: #514D56;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.section-page-bottom {
+  padding-block: 55px;
+  background: var(--smash-pink);
+  border-block: 2px solid var(--court-black);
+}
+
+.section-page-bottom-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.section-page-bottom h2 {
+  margin: 12px 0 0;
+  font-family: 'Space Grotesk', 'Nunito', sans-serif;
+  font-size: clamp(27px, 4vw, 43px);
+  line-height: 1.02;
+  letter-spacing: -.06em;
+}
+
+.section-page-bottom h2 span {
+  color: var(--titan-purple);
+}
+
+.section-not-found {
+  min-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block: 70px;
+}
+
+.section-not-found h1 {
+  margin: 18px 0;
+  font-family: 'Space Grotesk', 'Nunito', sans-serif;
+  font-size: clamp(45px, 7vw, 78px);
+  line-height: .98;
+  letter-spacing: -.065em;
+}
+
+.section-not-found h1 span {
+  color: var(--titan-purple);
+}
+
+.section-not-found p {
+  max-width: 560px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+@media (max-width: 1100px) {
+  .header-inner { column-gap: 16px; }
+  .brand-wordmark { font-size: 21px; }
+  .main-nav { flex-basis: 100%; max-width: none; justify-content: center; }
+}
+
+@media (max-width: 760px) {
+  .header-inner {
+    min-height: 75px;
+    padding-block: 12px;
+    justify-content: space-between;
+  }
+
+  .main-nav {
+    display: none;
+    flex: 1 0 100%;
+    max-width: none;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 10px 0 2px;
+  }
+
+  .main-nav.nav-open {
+    display: flex;
+  }
+
+  .main-nav > a {
+    padding: 12px 5px;
+    border-bottom: 1px dashed var(--line);
+    font-size: 10px;
+  }
+
+  .main-nav .nav-admin {
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  .mobile-menu-button {
+    display: grid !important;
+  }
+
+  .section-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-team-card p {
+    min-height: 0;
+  }
+
+  .section-page-hero h1 {
+    font-size: clamp(40px, 11vw, 60px);
+  }
+
+  .section-page-hero p {
+    font-size: 13px;
+  }
+
+  .section-page-bottom-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-page *,
+  .section-page *::before,
+  .section-page *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

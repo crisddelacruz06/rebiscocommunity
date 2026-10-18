@@ -136,9 +136,17 @@ function Header({ admin = false }: { admin?: boolean }) {
             {menuOpen ? <X /> : <Menu />}
           </button>
           <nav className={`main-nav ${menuOpen ? 'nav-open' : ''}`} aria-label="Main navigation">
-            <a href="/#latest" onClick={() => setMenuOpen(false)}>LATEST</a>
-            <a href="/#teams" onClick={() => setMenuOpen(false)}>OUR TEAMS</a>
-            <a href="/#about" onClick={() => setMenuOpen(false)}>ABOUT</a>
+            <a href="/news" onClick={() => setMenuOpen(false)}>LATEST NEWS</a>
+            <a href="/teams" onClick={() => setMenuOpen(false)}>TEAMS</a>
+            <a href="/players" onClick={() => setMenuOpen(false)}>PLAYERS</a>
+            <a href="/standings" onClick={() => setMenuOpen(false)}>STANDINGS</a>
+            <a href="/schedule" onClick={() => setMenuOpen(false)}>SCHEDULE</a>
+            <a href="/recaps" onClick={() => setMenuOpen(false)}>RECAPS</a>
+            <a href="/live" onClick={() => setMenuOpen(false)}>LIVE</a>
+            <a href="/videos" onClick={() => setMenuOpen(false)}>VIDEOS</a>
+            <a href="/photos" onClick={() => setMenuOpen(false)}>PHOTOS</a>
+            <a href="/stats" onClick={() => setMenuOpen(false)}>STATS</a>
+            <a href="/tickets" onClick={() => setMenuOpen(false)}>TICKETS</a>
             <a className="nav-admin" href="/admin">
               <LockKeyhole size={15} /> {admin ? 'DASHBOARD' : 'EDITOR LOGIN'}
             </a>
@@ -850,7 +858,107 @@ function AdminApp() {
   )
 }
 
+type SectionConfig = {
+  title: string
+  accent: string
+  eyebrow: string
+  description: string
+  icon: typeof Newspaper
+  status: string
+  items?: { title: string; description: string; href?: string }[]
+}
+
+const SECTION_CONFIG: Record<string, SectionConfig> = {
+  teams: {
+    title: 'OUR TEAMS', accent: 'THREE TEAMS. ONE COMMUNITY.', eyebrow: 'MEET THE SQUADS',
+    description: 'Follow the teams at the heart of REBISCOmmunity. Team profiles are fan guides; official announcements remain the source of truth.',
+    icon: Trophy, status: 'Team overview',
+    items: [
+      { title: 'Creamline Cool Smashers', description: 'The pink-powered squad. Find team-related stories and published updates.', href: '/news' },
+      { title: 'Choco Mucho Flying Titans', description: 'Follow the Flying Titans through the latest community coverage.', href: '/news' },
+      { title: 'Criss Cross King Crunchers', description: 'Keep up with King Crunchers stories and community updates.', href: '/news' },
+    ],
+  },
+  players: { title: 'PLAYER DESK', accent: 'THE PEOPLE BEHIND THE PLAYS.', eyebrow: 'PLAYER PROFILES', description: 'A home for player profiles, team affiliations, and stories. Profiles will be added as information is verified from reliable sources.', icon: CircleUserRound, status: 'Player profiles are not connected yet' },
+  standings: { title: 'STANDINGS', accent: 'EVERY SET COUNTS.', eyebrow: 'COMPETITION TRACKER', description: 'Follow the race through the standings. Rankings will be published only when competition, season, and source data can be verified.', icon: Trophy, status: 'Verified standings data is not connected yet' },
+  schedule: { title: 'MATCH SCHEDULE', accent: 'SAVE THE DATE. BRING THE NOISE.', eyebrow: 'UP NEXT', description: 'A match-day hub for upcoming fixtures, start times, and venues. Check official league and team channels before making plans.', icon: Newspaper, status: 'Verified schedule data is not connected yet' },
+  recaps: { title: 'MATCH RECAPS', accent: 'RELIVE EVERY RALLY.', eyebrow: 'AFTER THE FINAL WHISTLE', description: 'Match reports and post-game stories belong here. Browse published articles while recap-specific tagging is being developed.', icon: ArrowUpRight, status: 'Recap articles will appear as they are published' },
+  live: { title: 'LIVE CENTER', accent: 'MATCH DAY, ALL THE ENERGY.', eyebrow: 'LIVE COVERAGE', description: 'This page will host verified live links and match-day updates when available. No match is marked live unless coverage is confirmed.', icon: Sparkles, status: 'No verified live coverage is connected right now' },
+  videos: { title: 'VIDEO ZONE', accent: 'BIG PLAYS. BIG FEELINGS.', eyebrow: 'WATCH', description: 'A curated home for authorized highlights, interviews, and volleyball videos from official or otherwise permitted sources.', icon: Eye, status: 'Video sources have not been connected yet' },
+  photos: { title: 'PHOTO GALLERY', accent: 'MOMENTS WORTH KEEPING.', eyebrow: 'THROUGH THE LENS', description: 'Match-day galleries and community moments will be added when images are authorized for sharing and properly credited.', icon: Sparkles, status: 'No authorized gallery images have been added yet' },
+  stats: { title: 'STATS DESK', accent: 'THE NUMBERS BEHIND THE GAME.', eyebrow: 'TEAM & PLAYER DATA', description: 'Explore verified team and player statistics with competition and season identified. We do not invent official stats.', icon: Filter, status: 'Verified statistics data is not connected yet' },
+  tickets: { title: 'TICKETS & ATTENDANCE', accent: 'BE THERE FOR THE NEXT RALLY.', eyebrow: 'PLAN YOUR GAME DAY', description: 'Use official event and ticketing sources to check availability, venue details, and prices. REBISCOmmunity does not sell tickets directly.', icon: ExternalLink, status: 'Official ticket links will be listed when verified' },
+}
+
+function SectionPage({ sectionKey }: { sectionKey: string }) {
+  const config = SECTION_CONFIG[sectionKey]
+  const Icon = config.icon
+  return (
+    <>
+      <Header />
+      <main className="section-page">
+        <section className="section-page-hero">
+          <div className="site-container section-page-hero-inner">
+            <span className="eyebrow"><Icon size={15} /> {config.eyebrow}</span>
+            <h1>{config.title}<br /><span>{config.accent}</span></h1>
+            <p>{config.description}</p>
+            <div className="section-page-actions">
+              <a className="button button-primary" href="/news">LATEST NEWS <ArrowUpRight size={17} /></a>
+              <a className="button button-outline" href="/teams">EXPLORE OUR TEAMS <ArrowRight size={17} /></a>
+            </div>
+          </div>
+        </section>
+        <section className="site-container section-page-content">
+          {config.items ? (
+            <div className="section-team-grid">
+              {config.items.map((item, index) => (
+                <article className={`section-team-card section-team-card-${index}`} key={item.title}>
+                  <span className="section-team-number">0{index + 1}</span>
+                  <div className="section-team-icon"><Volleyball size={34} /></div>
+                  <h2>{item.title}</h2>
+                  <p>{item.description}</p>
+                  <a className="read-link" href={item.href}>EXPLORE TEAM STORIES <ArrowUpRight size={16} /></a>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="section-empty-state">
+              <div className="empty-icon"><Icon size={28} /></div>
+              <span className="eyebrow">COMING TO THE FAN DESK</span>
+              <h2>{config.status}</h2>
+              <p>We're keeping this page transparent rather than showing made-up fixtures, scores, player statistics, streams, or ticket availability. In the meantime, explore published articles and verified source links.</p>
+              <a className="button button-primary" href="/news">BROWSE PUBLISHED STORIES <ArrowRight size={17} /></a>
+            </div>
+          )}
+        </section>
+        <section className="section-page-bottom">
+          <div className="site-container section-page-bottom-inner">
+            <div><span className="eyebrow">ONE COMMUNITY. THREE TEAMS.</span><h2>THE GAME IS BETTER<br />WHEN WE <span>SHARE IT.</span></h2></div>
+            <a className="button button-outline" href="/admin">OPEN THE NEWSROOM <ArrowUpRight size={16} /></a>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 export default function App() {
-  const isAdminRoute = window.location.pathname.replace(/\/+$/, '') === '/admin'
-  return isAdminRoute ? <AdminApp /> : <PublicHome />
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (path === '/admin') return <AdminApp />
+  if (path === '/' || path === '/news') return <PublicHome />
+  const sectionKey = path.slice(1)
+  if (SECTION_CONFIG[sectionKey]) return <SectionPage sectionKey={sectionKey} />
+  return (
+    <>
+      <Header />
+      <main className="site-container section-not-found">
+        <span className="eyebrow">404 — OUT OF ROTATION</span>
+        <h1>THIS PAGE ISN'T<br /><span>IN PLAY.</span></h1>
+        <p>That page could not be found. Head back to the fan desk and keep following the game.</p>
+        <a className="button button-primary" href="/">BACK TO HOME <ArrowLeft size={17} /></a>
+      </main>
+      <Footer />
+    </>
+  )
 }
