@@ -429,15 +429,15 @@ function PublicHome() {
           <div className="site-container">
             <div className="home2-mini-heading"><span>CHOOSE YOUR SIDE</span><h2 id="home2-teams-title">THREE TEAMS. <em>ONE COMMUNITY.</em></h2></div>
             <div className="home2-team-grid">
-              <a className="home2-team-card home2-team-creamline" href="/teams">
+              <a className="home2-team-card home2-team-creamline" href="/teams/creamline">
                 <span className="home2-team-index">01 / THE COOL SMASHERS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
                 <strong>Creamline<br />Cool Smashers</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
               </a>
-              <a className="home2-team-card home2-team-choco" href="/teams">
+              <a className="home2-team-card home2-team-choco" href="/teams/choco-mucho">
                 <span className="home2-team-index">02 / THE FLYING TITANS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
                 <strong>Choco Mucho<br />Flying Titans</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
               </a>
-              <a className="home2-team-card home2-team-criss" href="/teams">
+              <a className="home2-team-card home2-team-criss" href="/teams/criss-cross">
                 <span className="home2-team-index">03 / THE KING CRUNCHERS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
                 <strong>Criss Cross<br />King Crunchers</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
               </a>
@@ -1395,9 +1395,9 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
     description: 'Follow the teams at the heart of REBISCOmmunity. Team profiles are fan guides; official announcements remain the source of truth.',
     icon: Trophy, status: 'Team overview',
     items: [
-      { title: 'Creamline Cool Smashers', description: 'The pink-powered squad. Find team-related stories and published updates.', href: '/news' },
-      { title: 'Choco Mucho Flying Titans', description: 'Follow the Flying Titans through the latest community coverage.', href: '/news' },
-      { title: 'Criss Cross King Crunchers', description: 'Keep up with King Crunchers stories and community updates.', href: '/news' },
+      { title: 'Creamline Cool Smashers', description: 'The pink-powered squad. Find team-related stories and published updates.', href: '/teams/creamline' },
+      { title: 'Choco Mucho Flying Titans', description: 'Follow the Flying Titans through the latest community coverage.', href: '/teams/choco-mucho' },
+      { title: 'Criss Cross King Crunchers', description: 'Keep up with King Crunchers stories and community updates.', href: '/teams/criss-cross' },
     ],
   },
   players: { title: 'PLAYER DESK', accent: 'THE PEOPLE BEHIND THE PLAYS.', eyebrow: 'PLAYER PROFILES', description: 'A home for player profiles, team affiliations, and stories. Profiles will be added as information is verified from reliable sources.', icon: CircleUserRound, status: 'Player profiles are not connected yet' },
@@ -1600,6 +1600,133 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
             <div><span className="eyebrow">ONE COMMUNITY. THREE TEAMS.</span><h2>THE GAME IS BETTER<br />WHEN WE <span>SHARE IT.</span></h2></div>
             <a className="button button-outline" href="/admin">OPEN THE NEWSROOM <ArrowUpRight size={16} /></a>
           </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+
+const TEAM_PAGE_CONFIG = {
+  creamline: {
+    slug: 'creamline', name: 'Creamline Cool Smashers', shortName: 'CREAMLINE', nickname: 'COOL SMASHERS',
+    colorClass: 'team-page-creamline', accent: '#E94D91',
+    intro: 'Your home for published Creamline updates, match-day details, recaps, and stories shared by the REBISCOmmunity.',
+    searchTerms: ['creamline', 'cool smashers'],
+  },
+  'choco-mucho': {
+    slug: 'choco-mucho', name: 'Choco Mucho Flying Titans', shortName: 'CHOCO MUCHO', nickname: 'FLYING TITANS',
+    colorClass: 'team-page-choco', accent: '#7954CF',
+    intro: 'Follow the Flying Titans with published news, fixture information, recaps, and fan-focused coverage.',
+    searchTerms: ['choco mucho', 'flying titans'],
+  },
+  'criss-cross': {
+    slug: 'criss-cross', name: 'Criss Cross King Crunchers', shortName: 'CRISS CROSS', nickname: 'KING CRUNCHERS',
+    colorClass: 'team-page-criss', accent: '#F28A36',
+    intro: 'Keep up with King Crunchers news, published match information, recaps, and community stories.',
+    searchTerms: ['criss cross', 'king crunchers'],
+  },
+} as const
+
+type TeamPageKey = keyof typeof TEAM_PAGE_CONFIG
+
+function itemMentionsTeam(item: SectionContent, terms: readonly string[]): boolean {
+  const metadata = item.metadata ?? {}
+  const searchable = [item.title, item.summary, item.body, ...Object.values(metadata).map(value => typeof value === 'string' || typeof value === 'number' ? String(value) : '')].join(' ').toLowerCase()
+  return terms.some(term => searchable.includes(term))
+}
+
+function articleMentionsTeam(article: Article, terms: readonly string[]): boolean {
+  const searchable = [article.title, article.excerpt, article.body, article.team, article.category].join(' ').toLowerCase()
+  return terms.some(term => searchable.includes(term))
+}
+
+function TeamDetailPage({ teamKey }: { teamKey: TeamPageKey }) {
+  const team = TEAM_PAGE_CONFIG[teamKey]
+  const [articles, setArticles] = useState<Article[]>([])
+  const [profileItems, setProfileItems] = useState<SectionContent[]>([])
+  const [matches, setMatches] = useState<SectionContent[]>([])
+  const [recaps, setRecaps] = useState<SectionContent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [retry, setRetry] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    async function loadTeamContent() {
+      if (!supabase) {
+        setLoadError('The content service is not configured. Please try again later.')
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      setLoadError('')
+      const now = new Date().toISOString()
+      const [articleResult, profileResult, scheduleResult, recapResult] = await Promise.all([
+        supabase.from('articles').select('*').eq('status', 'published').not('published_at', 'is', null).lte('published_at', now).order('published_at', { ascending: false }).limit(100),
+        supabase.from('section_content').select('*').eq('section', 'teams').eq('status', 'published').not('published_at', 'is', null).lte('published_at', now).order('featured', { ascending: false }).order('sort_order', { ascending: true }).limit(100),
+        supabase.from('section_content').select('*').eq('section', 'schedule').eq('status', 'published').not('published_at', 'is', null).lte('published_at', now).order('sort_order', { ascending: true }).order('published_at', { ascending: false }).limit(100),
+        supabase.from('section_content').select('*').eq('section', 'recaps').eq('status', 'published').not('published_at', 'is', null).lte('published_at', now).order('published_at', { ascending: false }).limit(100),
+      ])
+      if (!active) return
+      if (articleResult.error || profileResult.error || scheduleResult.error || recapResult.error) {
+        setLoadError('Some team content could not be loaded. Please retry; the page will show any content that loaded successfully.')
+      }
+      setArticles(((articleResult.data ?? []) as Article[]).filter(item => articleMentionsTeam(item, team.searchTerms)))
+      setProfileItems(((profileResult.data ?? []) as SectionContent[]).filter(item => itemMentionsTeam(item, team.searchTerms) || team.searchTerms.some(term => `${item.title} ${String(item.metadata?.team_name ?? '')}`.toLowerCase().includes(term))))
+      setMatches(((scheduleResult.data ?? []) as SectionContent[]).filter(item => {
+        const meta = item.metadata ?? {}
+        const teamsText = [item.title, meta.home_team, meta.away_team, meta.team, meta.opponent].map(value => typeof value === 'string' ? value : '').join(' ').toLowerCase()
+        return team.searchTerms.some(term => teamsText.includes(term))
+      }).sort((a, b) => matchTimestamp(a) - matchTimestamp(b)))
+      setRecaps(((recapResult.data ?? []) as SectionContent[]).filter(item => itemMentionsTeam(item, team.searchTerms)))
+      setLoading(false)
+    }
+    void loadTeamContent()
+    return () => { active = false }
+  }, [teamKey, retry, team.searchTerms])
+
+  const latestArticles = articles.slice(0, 6)
+  const latestMatches = matches.slice(0, 4)
+  const latestRecaps = recaps.slice(0, 3)
+  const profile = profileItems[0]
+  const profileSummary = profile?.summary || team.intro
+  const profileImage = profile?.image_url || null
+
+  return (
+    <>
+      <Header />
+      <main className={`team-detail-page ${team.colorClass}`}>
+        <section className="team-detail-hero">
+          <div className="site-container team-detail-hero-inner">
+            <a className="team-detail-back" href="/teams"><ArrowLeft size={15} /> ALL TEAMS</a>
+            <span className="team-detail-kicker"><Volleyball size={16} /> REBISCOmmunity TEAM DESK</span>
+            <p className="team-detail-overline">{team.shortName} / {team.nickname}</p>
+            <h1>{team.name.split(' ').slice(0, -2).join(' ')}<br /><span>{team.name.split(' ').slice(-2).join(' ')}</span></h1>
+            <p className="team-detail-intro">{profileSummary}</p>
+            <div className="team-detail-actions">
+              <a className="button button-primary" href="/match-center"><Trophy size={16} /> MATCH CENTER</a>
+              <a className="button button-outline" href="/news">LATEST NEWS <ArrowUpRight size={16} /></a>
+            </div>
+            <span className="team-detail-number" aria-hidden="true">{teamKey === 'creamline' ? '01' : teamKey === 'choco-mucho' ? '02' : '03'}</span>
+          </div>
+        </section>
+        <section className="site-container team-detail-content">
+          {loadError && <div className="notice notice-warning" role="status"><ShieldCheck size={18} /><p>{loadError}</p><button className="button button-small" onClick={() => setRetry(value => value + 1)}>RETRY</button></div>}
+          {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading published team content…</p></div> : (
+            <>
+              {profileImage && <section className="team-profile-feature"><img src={profileImage} alt={`${team.name} team feature`} /><div><span className="eyebrow">TEAM SPOTLIGHT</span><h2>{profile?.title || team.name}</h2><p>{profile?.body || profileSummary}</p>{profile?.external_url && <a className="team-inline-link" href={profile.external_url} target="_blank" rel="noopener noreferrer">OFFICIAL TEAM SOURCE <ExternalLink size={15} /></a>}</div></section>}
+              <section className="team-detail-section" aria-labelledby="team-news-heading"><div className="team-detail-section-heading"><div><span className="eyebrow">FROM THE NEWSROOM</span><h2 id="team-news-heading">LATEST <em>STORIES.</em></h2></div><a href="/news" className="team-inline-link">ALL NEWS <ArrowUpRight size={15} /></a></div>
+                {latestArticles.length ? <div className="team-article-grid">{latestArticles.map(article => <article className="team-article-card" key={article.id}>{article.image_url ? <img src={article.image_url} alt="" loading="lazy" /> : <div className="team-article-art"><Newspaper size={28} /></div>}<div className="team-article-copy"><span>{article.category || 'NEWS'}{article.published_at ? ` · ${new Date(article.published_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}</span><h3>{article.title}</h3><p>{article.excerpt}</p>{article.source_url && <a href={article.source_url} target="_blank" rel="noopener noreferrer">SOURCE <ExternalLink size={14} /></a>}</div></article>)}</div> : <div className="team-section-empty"><Newspaper size={24} /><h3>No team-tagged stories yet.</h3><p>Published articles will appear here when their team field or story text mentions {team.name}.</p><a href="/news" className="team-inline-link">BROWSE ALL NEWS <ArrowUpRight size={15} /></a></div>}
+              </section>
+              <section className="team-detail-section" aria-labelledby="team-matches-heading"><div className="team-detail-section-heading"><div><span className="eyebrow">MATCH DAY</span><h2>FIXTURES & <em>RESULTS.</em></h2></div><a href="/match-center" className="team-inline-link">MATCH CENTER <ArrowUpRight size={15} /></a></div>
+                {latestMatches.length ? <div className="team-match-list">{latestMatches.map(item => <article className="team-match-row" key={item.id}><div className="team-match-date"><CalendarDays size={16} /><span>{formatMatchDate(matchDateValue(item))}</span></div><div className="team-match-info"><strong>{item.title}</strong><span>{metadataText(item.metadata, 'home_team', 'team') || 'Team TBA'} <b>VS</b> {metadataText(item.metadata, 'away_team', 'opponent') || 'Opponent TBA'}</span></div><span className="team-match-status">{metadataText(item.metadata, 'status', 'match_status') || (isCompletedMatch(item) ? 'Final' : 'Scheduled')}</span><a className="team-match-open" href={`/matches/${encodeURIComponent(item.slug)}`} aria-label={`Open match details for ${item.title}`}><ArrowUpRight size={18} /></a></article>)}</div> : <div className="team-section-empty"><CalendarDays size={24} /><h3>No published fixtures found.</h3><p>Match details appear when a published schedule entry includes this team.</p><a href="/match-center" className="team-inline-link">OPEN MATCH CENTER <ArrowUpRight size={15} /></a></div>}
+              </section>
+              {latestRecaps.length > 0 && <section className="team-detail-section" aria-labelledby="team-recaps-heading"><div className="team-detail-section-heading"><div><span className="eyebrow">AFTER THE FINAL WHISTLE</span><h2>MATCH <em>RECAPS.</em></h2></div><a href="/recaps" className="team-inline-link">ALL RECAPS <ArrowUpRight size={15} /></a></div><div className="team-recap-grid">{latestRecaps.map(item => <article className="team-recap-card" key={item.id}>{item.image_url && <img src={item.image_url} alt="" loading="lazy" />}<div><span>{item.published_at ? new Date(item.published_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'RECAP'}</span><h3>{item.title}</h3><p>{item.summary}</p>{item.external_url && <a href={item.external_url} target="_blank" rel="noopener noreferrer">READ MORE <ExternalLink size={14} /></a>}</div></article>)}</div></section>}
+            </>
+          )}
+          <section className="team-detail-bottom"><div><span className="eyebrow">YOUR VOLLEYBALL WORLD</span><h2>ONE COMMUNITY.<br /><em>EVERY RALLY.</em></h2><p>Stay with the story through news, fixtures, and match-day coverage.</p></div><div><a className="button button-primary" href="/teams">EXPLORE ALL TEAMS <ArrowRight size={16} /></a><a className="button button-outline" href="/admin">OPEN THE NEWSROOM <ArrowUpRight size={16} /></a></div></section>
         </section>
       </main>
       <Footer />
@@ -1835,6 +1962,10 @@ export default function App() {
   if (path.startsWith('/matches/')) {
     const slug = decodeURIComponent(path.slice('/matches/'.length))
     return slug ? <MatchCenterPage slug={slug} /> : <MatchCenterPage />
+  }
+  if (path.startsWith('/teams/')) {
+    const teamKey = path.slice('/teams/'.length) as TeamPageKey
+    if (Object.prototype.hasOwnProperty.call(TEAM_PAGE_CONFIG, teamKey)) return <TeamDetailPage teamKey={teamKey} />
   }
   const sectionKey = path.slice(1)
   if (SECTION_CONFIG[sectionKey]) return <SectionPage sectionKey={sectionKey} />
