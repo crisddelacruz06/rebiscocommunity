@@ -1,824 +1,856 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  Heart,
-  Menu,
-  Search,
-  ShieldCheck,
-  Trophy,
-  Users,
-  Volleyball,
-  X,
-  Zap,
-} from "lucide-react";
+  ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight,
+ CheckCircle2, ChevronDown, CircleUserRound,
+  ExternalLink, Eye, FilePenLine, Filter, LockKeyhole,
+  LogOut, Menu, Newspaper, Plus, Search, ShieldCheck,
+  Sparkles, Trash2, Trophy, Volleyball, X
+} from 'lucide-react'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import './App.css'
 
-type Team = "All teams" | "Creamline" | "Choco Mucho" | "Criss Cross";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 
-type Story = {
-  id: number;
-  category: string;
-  team: Exclude<Team, "All teams"> | "Community";
-  title: string;
-  description: string;
-  readTime: string;
-  style: string;
-  featured?: boolean;
-};
+const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseKey
+    ? createClient(supabaseUrl, supabaseKey)
+    : null
 
-const teams = [
-  {
-    name: "Creamline",
-    nickname: "Cool Smashers",
-    short: "CS",
-    accent: "pink",
-    description: "The heart, the hustle, the smash.",
-    competition: "Women's volleyball",
-  },
-  {
-    name: "Choco Mucho",
-    nickname: "Flying Titans",
-    short: "CM",
-    accent: "purple",
-    description: "Fly high. Fight together.",
-    competition: "Women's volleyball",
-  },
-  {
-    name: "Criss Cross",
-    nickname: "King Crunchers",
-    short: "CC",
-    accent: "orange",
-    description: "Power, precision, and pride.",
-    competition: "Men's volleyball",
-  },
-];
+const TEAMS = [
+  'All Teams',
+  'Creamline Cool Smashers',
+  'Choco Mucho Flying Titans',
+  'Criss Cross King Crunchers',
+] as const
 
-const stories: Story[] = [
-  {
-    id: 1,
-    category: "FAN CULTURE",
-    team: "Community",
-    title: "Three teams. Three journeys. One volleyball family.",
-    description:
-      "Welcome to a space where every rally brings fans together and every team has a place to shine.",
-    readTime: "Community feature",
-    style: "story-pink",
-    featured: true,
-  },
-  {
-    id: 2,
-    category: "TEAM SPOTLIGHT",
-    team: "Creamline",
-    title: "Meet the Cool Smashers",
-    description:
-      "Get to know the team, follow its journey, and join the conversation with fellow supporters.",
-    readTime: "Team guide",
-    style: "story-purple",
-  },
-  {
-    id: 3,
-    category: "TEAM SPOTLIGHT",
-    team: "Choco Mucho",
-    title: "All eyes on the Flying Titans",
-    description:
-      "Your fan hub for team stories, verified announcements, and moments worth celebrating.",
-    readTime: "Team guide",
-    style: "story-orange",
-  },
-  {
-    id: 4,
-    category: "TEAM SPOTLIGHT",
-    team: "Criss Cross",
-    title: "Get to know the King Crunchers",
-    description:
-      "Follow the men's volleyball team and connect with supporters who love the game.",
-    readTime: "Team guide",
-    style: "story-blue",
-  },
-  {
-    id: 5,
-    category: "VOLLEYBALL 101",
-    team: "Community",
-    title: "New to volleyball? Start here.",
-    description:
-      "A beginner-friendly guide to sets, rotations, positions, and the details that make every rally exciting.",
-    readTime: "Beginner's guide",
-    style: "story-green",
-  },
-];
+const TEAM_SHORT: Record<string, string> = {
+  'Creamline Cool Smashers': 'CREAMLINE',
+  'Choco Mucho Flying Titans': 'CHOCO MUCHO',
+  'Criss Cross King Crunchers': 'CRISS CROSS',
+}
 
-const filters: Team[] = [
-  "All teams",
-  "Creamline",
-  "Choco Mucho",
-  "Criss Cross",
-];
+type Article = {
+  id: string
+  title: string
+  slug: string
+  team: string
+  category: string
+  excerpt: string
+  body: string
+  image_url: string | null
+  source_url: string | null
+  status: 'draft' | 'published'
+  author_id: string | null
+  published_at: string | null
+  created_at: string
+  updated_at: string
+}
 
-function App() {
-  const [activeFilter, setActiveFilter] = useState<Team>("All teams");
-  const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [expandedStory, setExpandedStory] = useState<number | null>(null);
-  const [vote, setVote] = useState<Team | null>(null);
-  const [voteSubmitted, setVoteSubmitted] = useState(false);
+type ArticleForm = {
+  title: string
+  slug: string
+  team: string
+  category: string
+  excerpt: string
+  body: string
+  image_url: string
+  source_url: string
+  status: 'draft' | 'published'
+}
 
-  const filteredStories = useMemo(() => {
-    const query = search.trim().toLowerCase();
+const EMPTY_FORM: ArticleForm = {
+  title: '',
+  slug: '',
+  team: TEAMS[1],
+  category: 'News',
+  excerpt: '',
+  body: '',
+  image_url: '',
+  source_url: '',
+  status: 'draft',
+}
 
-    return stories.filter((story) => {
-      const matchesTeam =
-        activeFilter === "All teams" ||
-        story.team === activeFilter ||
-        story.team === "Community";
+function makeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
 
-      const matchesSearch =
-        !query ||
-        `${story.title} ${story.description} ${story.team} ${story.category}`
-          .toLowerCase()
-          .includes(query);
+function formatDate(value: string | null) {
+  if (!value) return 'Unpublished'
+  return new Intl.DateTimeFormat('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value))
+}
 
-      return matchesTeam && matchesSearch;
-    });
-  }, [activeFilter, search]);
+function isValidHttpUrl(value: string) {
+  if (!value.trim()) return true
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
 
-  function goTo(id: string) {
-    setMobileOpen(false);
-    document.getElementById(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+function TeamMark({ team }: { team: string }) {
+  return (
+    <span className={`team-mark ${team === TEAMS[1] ? 'mark-creamline' : team === TEAMS[2] ? 'mark-choco' : 'mark-criss'}`}>
+      <Volleyball size={19} aria-hidden="true" />
+    </span>
+  )
+}
+
+function Header({ admin = false }: { admin?: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  return (
+    <>
+      <div className="top-strip">
+        <div className="site-container top-strip-inner">
+          <span><span className="live-dot" /> YOUR VOLLEYBALL. YOUR COMMUNITY.</span>
+          <span className="top-strip-right">INDEPENDENT FAN PUBLICATION <ArrowUpRight size={13} /></span>
+        </div>
+      </div>
+      <header className="site-header">
+        <div className="site-container header-inner">
+          <a href="/" className="brand" aria-label="REBISCOmmunity home">
+            <span className="brand-icon"><Volleyball size={25} /></span>
+            <span className="brand-wordmark">
+              REBISCO<span>mmunity</span>
+              <small>THE VOLLEYBALL FAN DESK</small>
+            </span>
+          </a>
+          <button
+            className="icon-button mobile-menu-button"
+            aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
+          <nav className={`main-nav ${menuOpen ? 'nav-open' : ''}`} aria-label="Main navigation">
+            <a href="/#latest" onClick={() => setMenuOpen(false)}>LATEST</a>
+            <a href="/#teams" onClick={() => setMenuOpen(false)}>OUR TEAMS</a>
+            <a href="/#about" onClick={() => setMenuOpen(false)}>ABOUT</a>
+            <a className="nav-admin" href="/admin">
+              <LockKeyhole size={15} /> {admin ? 'DASHBOARD' : 'EDITOR LOGIN'}
+            </a>
+          </nav>
+        </div>
+      </header>
+    </>
+  )
+}
+
+function Footer() {
+  return (
+    <footer className="site-footer" id="about">
+      <div className="site-container footer-main">
+        <div>
+          <a href="/" className="brand footer-brand">
+            <span className="brand-icon"><Volleyball size={25} /></span>
+            <span className="brand-wordmark">REBISCO<span>mmunity</span><small>THE VOLLEYBALL FAN DESK</small></span>
+          </a>
+          <p>For the fans who live every rally.</p>
+        </div>
+        <div className="footer-disclaimer">
+          <strong>AN INDEPENDENT FAN PUBLICATION</strong>
+          <p>REBISCOmmunity is an independent fan project, not an official team or sponsor website. Team names and marks belong to their respective owners. Updates should be verified against linked sources.</p>
+        </div>
+      </div>
+      <div className="site-container footer-bottom">
+        <span>© {new Date().getFullYear()} REBISCOmmunity</span>
+        <span>BUILT FOR THE LOVE OF THE GAME <Volleyball size={14} /></span>
+      </div>
+    </footer>
+  )
+}
+
+function ArticleCard({
+  article,
+  featured = false,
+  onOpen,
+}: {
+  article: Article
+  featured?: boolean
+  onOpen: (article: Article) => void
+}) {
+  return (
+    <article className={`article-card ${featured ? 'article-card-featured' : ''}`}>
+      <button
+        className="article-image-button"
+        onClick={() => onOpen(article)}
+        aria-label={`Read ${article.title}`}
+      >
+        {article.image_url ? (
+          <img className="article-image" src={article.image_url} alt="" loading="lazy" />
+        ) : (
+          <div className={`article-image-placeholder ${article.team === TEAMS[1] ? 'placeholder-creamline' : article.team === TEAMS[2] ? 'placeholder-choco' : 'placeholder-criss'}`}>
+            <span className="placeholder-kicker">{TEAM_SHORT[article.team]}</span>
+            <Volleyball className="placeholder-ball" size={featured ? 94 : 66} strokeWidth={1.1} aria-hidden="true" />
+            <span className="placeholder-bottom">REBISCO<span>mmunity</span></span>
+          </div>
+        )}
+        <span className="image-category">{article.category}</span>
+      </button>
+      <div className="article-card-copy">
+        <div className="article-meta">
+          <span className="team-label"><TeamMark team={article.team} />{TEAM_SHORT[article.team]}</span>
+          <span className="meta-dot" />
+          <span>{formatDate(article.published_at)}</span>
+        </div>
+        <button className="article-title-button" onClick={() => onOpen(article)}>
+          <h3>{article.title}</h3>
+        </button>
+        <p className="article-excerpt">{article.excerpt}</p>
+        <button className="read-link" onClick={() => onOpen(article)}>
+          READ STORY <ArrowUpRight size={16} />
+        </button>
+      </div>
+    </article>
+  )
+}
+
+function ArticleReader({
+  article,
+  onClose,
+}: {
+  article: Article
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [onClose])
+
+  return (
+    <div className="reader-overlay" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose()
+    }}>
+      <section className="reader-panel" role="dialog" aria-modal="true" aria-labelledby="reader-title">
+        <div className="reader-toolbar">
+          <span><Newspaper size={17} /> STORY DESK</span>
+          <button className="icon-button" onClick={onClose} aria-label="Close article"><X /></button>
+        </div>
+        {article.image_url && <img src={article.image_url} alt="" className="reader-image" />}
+        <div className="reader-content">
+          <div className="article-meta">
+            <span className="team-label"><TeamMark team={article.team} />{TEAM_SHORT[article.team]}</span>
+            <span className="meta-dot" />
+            <span>{formatDate(article.published_at)}</span>
+          </div>
+          <span className="eyebrow">{article.category}</span>
+          <h2 id="reader-title">{article.title}</h2>
+          <p className="reader-excerpt">{article.excerpt}</p>
+          <div className="reader-body">{article.body}</div>
+          {article.source_url && (
+            <a className="button button-outline source-button" href={article.source_url} target="_blank" rel="noopener noreferrer">
+              VIEW ORIGINAL SOURCE <ExternalLink size={16} />
+            </a>
+          )}
+          <p className="reader-disclaimer">Independent fan coverage. Please consult the linked original source for official announcements and updates.</p>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function PublicHome() {
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [team, setTeam] = useState<string>('All Teams')
+  const [category, setCategory] = useState('All Stories')
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<Article | null>(null)
+
+  useEffect(() => {
+    let active = true
+    async function loadArticles() {
+      if (!supabase) {
+        setError('Connect Supabase to publish real articles. The editorial feed is not configured yet.')
+        setLoading(false)
+        return
+      }
+      const { data, error: queryError } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+        .lte('published_at', new Date().toISOString())
+        .order('published_at', { ascending: false })
+        .limit(100)
+
+      if (!active) return
+      if (queryError) setError('We could not load updates. Check your Supabase setup and database policies.')
+      else setArticles((data ?? []) as Article[])
+      setLoading(false)
+    }
+    void loadArticles()
+    return () => { active = false }
+  }, [])
+
+  const filtered = useMemo(() => articles.filter((article) => {
+    const matchesTeam = team === 'All Teams' || article.team === team
+    const matchesCategory = category === 'All Stories' || article.category === category
+    const term = search.trim().toLowerCase()
+    const matchesSearch = !term || [article.title, article.excerpt, article.body, article.team]
+      .some((value) => value.toLowerCase().includes(term))
+    return matchesTeam && matchesCategory && matchesSearch
+  }), [articles, team, category, search])
+
+  const featured = filtered[0]
+  const remaining = filtered.slice(1)
+  const openArticle = (article: Article) => setSelected(article)
+
+  return (
+    <>
+      <Header />
+      <main>
+        <section className="hero">
+          <div className="hero-grid" aria-hidden="true" />
+          <div className="site-container hero-layout">
+            <div className="hero-copy">
+              <div className="hero-kicker"><span className="live-dot" /> THE FAN DESK IS OPEN</div>
+              <h1>EVERY RALLY.<br />EVERY <span>STORY.</span></h1>
+              <p className="hero-description">Your home for the latest from the teams, players, and moments that make Philippine volleyball unforgettable.</p>
+              <a className="button button-primary" href="#latest">EXPLORE THE LATEST <ArrowDownRight size={18} /></a>
+              <div className="hero-footnote"><ShieldCheck size={15} /> FAN-DRIVEN. SOURCE-LED. VOLLEYBALL-OBSESSED.</div>
+            </div>
+            <div className="hero-art" aria-label="Volleyball illustration">
+              <div className="hero-orbit orbit-one" />
+              <div className="hero-orbit orbit-two" />
+              <div className="hero-number">01</div>
+              <div className="hero-ball"><Volleyball size={174} strokeWidth={0.9} /></div>
+              <div className="hero-stamp"><span>THE</span><strong>GAME</strong><span>NEVER STOPS</span></div>
+              <div className="hero-side-note">PHILIPPINE VOLLEYBALL / FAN CULTURE / 01</div>
+            </div>
+          </div>
+          <div className="hero-bottom-line">
+            <div className="site-container hero-bottom-inner">
+              <span>ONE COMMUNITY. THREE TEAMS.</span>
+              <span>MADE FOR THE LOVE OF VOLLEYBALL <ArrowRight size={15} /></span>
+            </div>
+          </div>
+        </section>
+
+        <section className="team-ribbon" id="teams" aria-label="Featured teams">
+          <div className="site-container team-ribbon-grid">
+            {TEAMS.slice(1).map((name, index) => (
+              <button className={`team-ribbon-item team-ribbon-${index}`} key={name} onClick={() => {
+                setTeam(name)
+                document.getElementById('latest')?.scrollIntoView({ behavior: 'smooth' })
+              }}>
+                <TeamMark team={name} />
+                <span><small>TEAM {String(index + 1).padStart(2, '0')}</small><strong>{name}</strong></span>
+                <ArrowUpRight size={18} className="team-arrow" />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="news-section site-container" id="latest">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow"><Sparkles size={15} /> THE LATEST</span>
+              <h2>THE <span>FEED.</span></h2>
+              <p className="section-subtitle">News, match reports, and stories worth sharing.</p>
+            </div>
+            <div className="feed-count"><span>{String(filtered.length).padStart(2, '0')}</span> STORIES FOUND</div>
+          </div>
+
+          <div className="feed-controls">
+            <label className="search-field">
+              <Search size={18} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search stories, teams..." aria-label="Search stories" />
+              {search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={16} /></button>}
+            </label>
+            <label className="select-field">
+              <Filter size={16} />
+              <select value={team} onChange={(event) => setTeam(event.target.value)} aria-label="Filter by team">
+                {TEAMS.map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <ChevronDown size={15} />
+            </label>
+            <label className="select-field category-select">
+              <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter by category">
+                {['All Stories', 'News', 'Match Report', 'Announcement', 'Feature'].map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <ChevronDown size={15} />
+            </label>
+          </div>
+
+          {error && (
+            <div className="notice notice-warning" role="status">
+              <ShieldCheck size={21} />
+              <div><strong>EDITORIAL FEED NOT CONNECTED</strong><p>{error}</p><a href="/admin">Open the editor setup <ArrowRight size={14} /></a></div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="empty-state"><span className="loading-spinner" /><p>Loading the fan desk…</p></div>
+          ) : !error && filtered.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon"><Newspaper size={30} /></div>
+              <span className="eyebrow">THE NEXT STORY STARTS HERE</span>
+              <h3>{articles.length ? 'No stories match your filters.' : 'The feed is warming up.'}</h3>
+              <p>{articles.length ? 'Try another team, category, or search term.' : 'No articles have been published yet. Once your editor publishes a verified update, it will appear here.'}</p>
+              {articles.length > 0 && <button className="button button-outline" onClick={() => { setTeam('All Teams'); setCategory('All Stories'); setSearch('') }}>CLEAR FILTERS</button>}
+            </div>
+          ) : !error && featured ? (
+            <>
+              <div className="featured-story-label"><span className="live-dot" /> LATEST PUBLISHED STORY</div>
+              <ArticleCard article={featured} featured onOpen={openArticle} />
+              {remaining.length > 0 && (
+                <div className="story-grid">
+                  {remaining.map((article) => <ArticleCard key={article.id} article={article} onOpen={openArticle} />)}
+                </div>
+              )}
+            </>
+          ) : null}
+        </section>
+
+        <section className="manifesto">
+          <div className="site-container manifesto-inner">
+            <div className="manifesto-mark"><Trophy size={31} /></div>
+            <div><span className="eyebrow">MORE THAN A SCORELINE</span><h2>THE GAME IS BETTER<br />WHEN WE <span>SHARE IT.</span></h2></div>
+            <p>From game-day energy to the stories between matches, REBISCOmmunity brings fans together around the teams they love.</p>
+            <a href="/admin" className="manifesto-link">JOIN THE NEWSROOM <ArrowUpRight size={17} /></a>
+          </div>
+        </section>
+      </main>
+      <Footer />
+      {selected && <ArticleReader article={selected} onClose={() => setSelected(null)} />}
+    </>
+  )
+}
+
+function AdminLogin({ onLogin }: { onLogin: (email: string, password: string) => Promise<string | null> }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    const message = await onLogin(email.trim(), password)
+    setBusy(false)
+    if (message) setError(message)
   }
 
-  function resetFilters() {
-    setActiveFilter("All teams");
-    setSearch("");
-    setSearchOpen(false);
-    goTo("updates");
+  return (
+    <div className="admin-login-wrap">
+      <div className="admin-login-card">
+        <div className="admin-login-icon"><LockKeyhole size={25} /></div>
+        <span className="eyebrow">RESTRICTED ACCESS</span>
+        <h1>EDITOR <span>LOGIN.</span></h1>
+        <p>Sign in with the administrator account created in Supabase. Public registration is not available.</p>
+        <form onSubmit={submit} className="editor-form">
+          <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <button className="button button-primary button-full" disabled={busy}>{busy ? 'SIGNING IN…' : 'SIGN IN SECURELY'} <ArrowRight size={17} /></button>
+        </form>
+        <a href="/" className="back-home"><ArrowLeft size={15} /> BACK TO THE FAN DESK</a>
+      </div>
+    </div>
+  )
+}
+
+function AdminDashboard({
+  articles,
+  onCreate,
+  onEdit,
+  onDelete,
+  onLogout,
+  onRefresh,
+  busy,
+  error,
+  notice,
+}: {
+  articles: Article[]
+  onCreate: () => void
+  onEdit: (article: Article) => void
+  onDelete: (article: Article) => void
+  onLogout: () => void
+  onRefresh: () => void
+  busy: boolean
+  error: string
+  notice: string
+}) {
+  const published = articles.filter((article) => article.status === 'published').length
+  const drafts = articles.length - published
+
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <a href="/" className="brand admin-brand"><span className="brand-icon"><Volleyball size={24} /></span><span className="brand-wordmark">REBISCO<span>mmunity</span><small>EDITORIAL DESK</small></span></a>
+        <div className="admin-nav-label">WORKSPACE</div>
+        <a className="admin-side-link active" href="/admin"><Newspaper size={17} /> Articles <span>{articles.length}</span></a>
+        <a className="admin-side-link" href="/"><Eye size={17} /> View website <ArrowUpRight size={15} /></a>
+        <div className="admin-sidebar-bottom">
+          <div className="admin-identity"><span><CircleUserRound size={20} /></span><div><strong>Editor account</strong><small>Authorized session</small></div></div>
+          <button className="admin-side-link logout-link" onClick={onLogout}><LogOut size={17} /> Sign out</button>
+        </div>
+      </aside>
+      <main className="admin-main">
+        <div className="admin-topbar"><span><span className="live-dot" /> EDITORIAL WORKSPACE</span><a href="/" target="_blank" rel="noreferrer">VIEW LIVE SITE <ExternalLink size={14} /></a></div>
+        <div className="admin-content">
+          <div className="admin-page-heading">
+            <div><span className="eyebrow">YOUR NEWSROOM</span><h1>STORY <span>MANAGEMENT.</span></h1><p>Create, revise, and publish updates for the REBISCOmmunity feed.</p></div>
+            <button className="button button-primary" onClick={onCreate}><Plus size={18} /> NEW ARTICLE</button>
+          </div>
+          {notice && <div className="notice notice-success" role="status"><CheckCircle2 size={19} />{notice}</div>}
+          {error && <div className="notice notice-warning" role="alert"><ShieldCheck size={19} />{error}</div>}
+          <div className="admin-stat-grid">
+            <div className="admin-stat"><span>TOTAL ARTICLES</span><strong>{articles.length}</strong><Newspaper size={22} /></div>
+            <div className="admin-stat"><span>PUBLISHED</span><strong>{published}</strong><CheckCircle2 size={22} /></div>
+            <div className="admin-stat"><span>DRAFTS</span><strong>{drafts}</strong><FilePenLine size={22} /></div>
+          </div>
+          <div className="admin-list-heading"><div><h2>ALL ARTICLES</h2><span>{articles.length} total records</span></div><button className="button button-outline button-small" onClick={onRefresh} disabled={busy}>REFRESH <ArrowRight size={15} /></button></div>
+          {busy ? <div className="empty-state"><span className="loading-spinner" /><p>Loading articles…</p></div> : articles.length === 0 ? (
+            <div className="empty-state admin-empty"><div className="empty-icon"><Newspaper size={30} /></div><h3>Your newsroom is ready.</h3><p>Create your first verified article. Save it as a draft or publish it to the public feed.</p><button className="button button-primary" onClick={onCreate}><Plus size={17} /> CREATE FIRST ARTICLE</button></div>
+          ) : (
+            <div className="admin-article-list">
+              {articles.map((article) => (
+                <article className="admin-article-row" key={article.id}>
+                  <div className="admin-row-image">{article.image_url ? <img src={article.image_url} alt="" /> : <Volleyball size={27} />}</div>
+                  <div className="admin-row-copy"><div className="admin-row-meta"><span className={`status-pill status-${article.status}`}>{article.status}</span><span>{TEAM_SHORT[article.team]}</span><span>{article.category}</span></div><h3>{article.title}</h3><p>{article.excerpt}</p><small>Updated {formatDate(article.updated_at)}</small></div>
+                  <div className="admin-row-actions"><button className="icon-button" onClick={() => onEdit(article)} aria-label={`Edit ${article.title}`}><FilePenLine size={18} /></button><button className="icon-button danger-icon" onClick={() => onDelete(article)} aria-label={`Delete ${article.title}`}><Trash2 size={18} /></button></div>
+                </article>
+              ))}
+            </div>
+          )}
+          <p className="admin-security-note"><ShieldCheck size={16} /> Database permissions are enforced by Supabase Row Level Security, not just by this dashboard.</p>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function ArticleEditor({
+  article,
+  saving,
+  error,
+  onClose,
+  onSave,
+}: {
+  article: Article | null
+  saving: boolean
+  error: string
+  onClose: () => void
+  onSave: (form: ArticleForm) => Promise<void>
+}) {
+  const [form, setForm] = useState<ArticleForm>(article ? {
+    title: article.title,
+    slug: article.slug,
+    team: article.team,
+    category: article.category,
+    excerpt: article.excerpt,
+    body: article.body,
+    image_url: article.image_url ?? '',
+    source_url: article.source_url ?? '',
+    status: article.status,
+  } : EMPTY_FORM)
+  const [slugEdited, setSlugEdited] = useState(Boolean(article))
+  const [validationError, setValidationError] = useState('')
+
+  function change<K extends keyof ArticleForm>(key: K, value: ArticleForm[K]) {
+    setForm((previous) => ({
+      ...previous,
+      [key]: value,
+      ...(key === 'title' && !slugEdited ? { slug: makeSlug(String(value)) } : {}),
+    }))
   }
 
-  function submitPoll() {
-    if (!vote) return;
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setValidationError('')
+    if (!isValidHttpUrl(form.image_url) || !isValidHttpUrl(form.source_url)) {
+      setValidationError('Image and source links must be valid HTTP or HTTPS URLs.')
+      return
+    }
+    if (!form.slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug)) {
+      setValidationError('Use a URL slug with lowercase letters, numbers, and hyphens only.')
+      return
+    }
+    await onSave(form)
+  }
 
-    // Local demonstration only. Votes are not sent to a server.
-    setVoteSubmitted(true);
+  return (
+    <div className="editor-overlay">
+      <section className="editor-panel" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+        <div className="editor-topbar"><div><span className="eyebrow">EDITORIAL DESK</span><h2 id="editor-title">{article ? 'EDIT STORY' : 'NEW STORY'}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close editor"><X /></button></div>
+        <form className="editor-form editor-form-full" onSubmit={submit}>
+          <label>Headline *<input required minLength={5} maxLength={180} value={form.title} onChange={(event) => change('title', event.target.value)} placeholder="Write a clear, accurate headline" /></label>
+          <label>URL slug *<input required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={form.slug} onChange={(event) => { setSlugEdited(true); change('slug', event.target.value) }} placeholder="example-volleyball-update" /><small>Lowercase letters, numbers, and hyphens only.</small></label>
+          <div className="form-two-col">
+            <label>Team *<select value={form.team} onChange={(event) => change('team', event.target.value)}>{TEAMS.slice(1).map((item) => <option key={item}>{item}</option>)}</select></label>
+            <label>Category *<select value={form.category} onChange={(event) => change('category', event.target.value)}>{['News', 'Match Report', 'Announcement', 'Feature'].map((item) => <option key={item}>{item}</option>)}</select></label>
+          </div>
+          <label>Short summary *<textarea required minLength={10} maxLength={400} rows={3} value={form.excerpt} onChange={(event) => change('excerpt', event.target.value)} placeholder="Summarize the story in 1–3 sentences." /><small>{form.excerpt.length}/400 characters</small></label>
+          <label>Article body *<textarea required minLength={20} maxLength={30000} rows={9} value={form.body} onChange={(event) => change('body', event.target.value)} placeholder="Write the article in plain text. Verify names, dates, scores, and quotations before publishing." /><small>{form.body.length}/30,000 characters</small></label>
+          <label>Cover image URL (optional)<input type="url" value={form.image_url} onChange={(event) => change('image_url', event.target.value)} placeholder="https://example.com/authorized-image.jpg" /></label>
+          <label>Original source URL (recommended)<input type="url" value={form.source_url} onChange={(event) => change('source_url', event.target.value)} placeholder="https://official-source.example/article" /></label>
+          <label>Publication status *<select value={form.status} onChange={(event) => change('status', event.target.value as ArticleForm['status'])}><option value="draft">Draft — visible to editors only</option><option value="published">Published — visible to everyone</option></select></label>
+          {validationError && <div className="form-error" role="alert">{validationError}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <div className="editor-actions"><button type="button" className="button button-outline" onClick={onClose}>CANCEL</button><button className="button button-primary" disabled={saving}>{saving ? 'SAVING…' : form.status === 'published' ? 'SAVE & PUBLISH' : 'SAVE DRAFT'} <ArrowRight size={16} /></button></div>
+          <p className="editor-hint"><ShieldCheck size={15} /> Publish only verified information and use media you are authorized to share.</p>
+        </form>
+      </section>
+    </div>
+  )
+}
+
+function AdminApp() {
+  const [sessionReady, setSessionReady] = useState(false)
+  const [sessionUser, setSessionUser] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<Article | null | undefined>(undefined)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  async function checkAdmin(userId: string) {
+    if (!supabase) return false
+    const { data, error: checkError } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (checkError) throw checkError
+    return Boolean(data)
+  }
+
+  async function refreshArticles() {
+    if (!supabase || !isAdmin) return
+    setLoading(true)
+    setError('')
+    const { data, error: queryError } = await supabase
+      .from('articles')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(200)
+    if (queryError) setError('Could not load articles. Verify the database SQL and your administrator permissions.')
+    else setArticles((data ?? []) as Article[])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    if (!supabase) {
+      setSessionReady(true)
+      return
+    }
+    let active = true
+    async function initialize() {
+      const { data } = await supabase!.auth.getSession()
+      if (!active) return
+      const userId = data.session?.user.id ?? null
+      setSessionUser(userId)
+      if (userId) {
+        try { setIsAdmin(await checkAdmin(userId)) }
+        catch { setError('Could not verify administrator access. Check the Supabase admin_users policy and SQL setup.') }
+      }
+      setSessionReady(true)
+    }
+    void initialize()
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+      setSessionUser(session?.user.id ?? null)
+      if (!session) {
+        setIsAdmin(false)
+        setArticles([])
+        setSessionReady(true)
+      } else {
+        window.setTimeout(() => {
+          void checkAdmin(session.user.id)
+            .then((allowed) => { if (active) setIsAdmin(allowed) })
+            .catch(() => { if (active) setError('Unable to verify your administrator role.') })
+        }, 0)
+      }
+    })
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (sessionReady && sessionUser && isAdmin) void refreshArticles()
+  }, [sessionReady, sessionUser, isAdmin])
+
+  async function login(email: string, password: string): Promise<string | null> {
+    if (!supabase) return 'Supabase is not configured. Add your environment variables and restart Vite.'
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+    if (loginError || !data.user) return 'Sign-in failed. Check your credentials and Supabase Auth settings.'
+    try {
+      const allowed = await checkAdmin(data.user.id)
+      if (!allowed) {
+        await supabase.auth.signOut()
+        return 'This account is not on the administrator allowlist.'
+      }
+      setSessionUser(data.user.id)
+      setIsAdmin(true)
+      setNotice('Signed in. Your editorial workspace is ready.')
+      return null
+    } catch {
+      await supabase.auth.signOut()
+      return 'Unable to verify administrator permissions. Check your database setup.'
+    }
+  }
+
+  async function saveArticle(form: ArticleForm) {
+    if (!supabase || !sessionUser || !isAdmin) {
+      setError('Your administrator session is not valid. Sign in again.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    const publishedAt = form.status === 'published'
+      ? (editing && editing !== undefined && editing.published_at ? editing.published_at : new Date().toISOString())
+      : null
+    const payload = {
+      title: form.title.trim(),
+      slug: form.slug.trim(),
+      team: form.team,
+      category: form.category,
+      excerpt: form.excerpt.trim(),
+      body: form.body.trim(),
+      image_url: form.image_url.trim() || null,
+      source_url: form.source_url.trim() || null,
+      status: form.status,
+      published_at: publishedAt,
+      author_id: sessionUser,
+      updated_at: new Date().toISOString(),
+    }
+
+    const result = editing
+      ? await supabase.from('articles').update(payload).eq('id', editing.id)
+      : await supabase.from('articles').insert(payload)
+
+    if (result.error) {
+      setError(result.error.code === '23505'
+        ? 'That URL slug is already in use. Choose a unique slug.'
+        : 'The article could not be saved. Check the database error, validation rules, and administrator permissions.')
+      setSaving(false)
+      return
+    }
+
+    setNotice(form.status === 'published' ? 'Article saved and published.' : 'Draft saved successfully.')
+    setEditing(undefined)
+    await refreshArticles()
+    setSaving(false)
+  }
+
+  async function deleteArticle(article: Article) {
+    if (!supabase || !isAdmin) return
+    if (!window.confirm(`Permanently delete "${article.title}"? This cannot be undone.`)) return
+    setError('')
+    const { error: deleteError } = await supabase.from('articles').delete().eq('id', article.id)
+    if (deleteError) setError('Article could not be deleted. Check your administrator permissions.')
+    else {
+      setNotice('Article deleted.')
+      await refreshArticles()
+    }
+  }
+
+  async function logout() {
+    if (supabase) await supabase.auth.signOut()
+    setSessionUser(null)
+    setIsAdmin(false)
+    setArticles([])
+    setNotice('')
+    setError('')
+  }
+
+  if (!supabase) {
+    return (
+      <>
+        <Header admin />
+        <main className="setup-screen site-container">
+          <div className="setup-card">
+            <ShieldCheck size={36} />
+            <span className="eyebrow">ONE-TIME SETUP</span>
+            <h1>CONNECT THE <span>NEWSROOM.</span></h1>
+            <p>The admin dashboard needs your Supabase project URL and publishable key.</p>
+            <ol>
+              <li>Create `.env.local` beside `package.json`.</li>
+              <li>Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.</li>
+              <li>Save the file and restart the Vite server.</li>
+              <li>Run the SQL setup and create your administrator account.</li>
+            </ol>
+            <a href="/" className="button button-outline">BACK TO HOMEPAGE <ArrowLeft size={16} /></a>
+          </div>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  if (!sessionReady) return <div className="full-screen-loading"><span className="loading-spinner" /> Verifying session…</div>
+
+  if (!sessionUser || !isAdmin) {
+    return (
+      <>
+        <Header admin />
+        {sessionUser && !isAdmin ? (
+          <main className="setup-screen site-container"><div className="setup-card"><ShieldCheck size={36} /><h1>ADMIN ACCESS <span>REQUIRED.</span></h1><p>This account is not authorized to manage articles.</p>{error && <p role="alert">{error}</p>}<button className="button button-primary" onClick={logout}>SIGN OUT <LogOut size={16} /></button></div></main>
+        ) : (
+          <AdminLogin onLogin={login} />
+        )}
+        <Footer />
+      </>
+    )
   }
 
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-
-      <div className="announcement">
-        <span className="live-dot" aria-hidden="true" />
-        <span>
-          THE FAN HUB FOR REBISCO VOLLEYBALL
-        </span>
-        <span className="announcement-divider" aria-hidden="true">
-          /
-        </span>
-        <span className="announcement-detail">
-          One community. Three teams.
-        </span>
-      </div>
-
-      <header className="site-header">
-        <a
-          className="brand"
-          href="#home"
-          aria-label="REBISCOmmunity home"
-        >
-          <span className="brand-mark" aria-hidden="true">
-            <Volleyball size={27} strokeWidth={1.8} />
-          </span>
-          <span className="brand-word">
-            REBISCO<span>mmunity</span>
-            <small>THE VOLLEYBALL FAN HUB</small>
-          </span>
-        </a>
-
-        <nav
-          className={`main-nav ${mobileOpen ? "nav-open" : ""}`}
-          id="main-navigation"
-          aria-label="Main navigation"
-        >
-          <a href="#updates" onClick={() => setMobileOpen(false)}>
-            The latest
-          </a>
-          <a href="#teams" onClick={() => setMobileOpen(false)}>
-            Our teams
-          </a>
-          <a href="#matches" onClick={() => setMobileOpen(false)}>
-            Match center
-          </a>
-          <a href="#community" onClick={() => setMobileOpen(false)}>
-            Community
-          </a>
-        </nav>
-
-        <div className="header-actions">
-          <button
-            className="icon-button search-toggle"
-            type="button"
-            aria-label={searchOpen ? "Close search" : "Open search"}
-            aria-expanded={searchOpen}
-            onClick={() => {
-              setSearchOpen((open) => !open);
-              if (searchOpen) setSearch("");
-              else goTo("updates");
-            }}
-          >
-            {searchOpen ? <X size={19} /> : <Search size={19} />}
-          </button>
-
-          <button
-            className="button button-small button-primary desktop-cta"
-            type="button"
-            onClick={() => goTo("community")}
-          >
-            Join the fam <ArrowUpRight size={16} />
-          </button>
-
-          <button
-            className="icon-button menu-toggle"
-            type="button"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-            aria-controls="main-navigation"
-            onClick={() => setMobileOpen((open) => !open)}
-          >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </header>
-
-      <main id="main">
-        <section className="hero section-wrap" id="home">
-          <div className="hero-copy">
-            <div className="eyebrow">
-              <span className="eyebrow-line" />
-              YOUR COURTSIDE COMMUNITY
-            </div>
-
-            <h1>
-              MORE THAN
-              <br />
-              A GAME.
-              <br />
-              <span className="gradient-text">WE'RE FAMILY.</span>
-            </h1>
-
-            <p className="hero-description">
-              Every rally has a story. Every team has a
-              community. Get your volleyball fix, celebrate
-              your favorites, and find your people here.
-            </p>
-
-            <div className="hero-actions">
-              <button
-                className="button button-primary"
-                type="button"
-                onClick={() => goTo("updates")}
-              >
-                Explore the latest <ArrowRight size={17} />
-              </button>
-              <button
-                className="button button-outline"
-                type="button"
-                onClick={() => goTo("teams")}
-              >
-                Meet the teams <ArrowDownRight size={17} />
-              </button>
-            </div>
-
-            <div className="hero-note">
-              <span className="avatar-stack" aria-hidden="true">
-                <span>C</span>
-                <span>M</span>
-                <span>X</span>
-              </span>
-              <span>
-                Three teams.
-                <strong> One volleyball family.</strong>
-              </span>
-            </div>
-          </div>
-
-          <div className="hero-art" aria-label="Three-team community graphic">
-            <div className="art-orbit orbit-one" />
-            <div className="art-orbit orbit-two" />
-            <div className="art-star star-one">✳</div>
-            <div className="art-star star-two">✦</div>
-
-            <div className="hero-sticker sticker-top">
-              <Zap size={15} />
-              ALL HEART
-            </div>
-
-            <div className="hero-ball">
-              <Volleyball
-                size={150}
-                strokeWidth={0.85}
-                aria-hidden="true"
-              />
-              <span className="ball-label">PLAY AS ONE</span>
-            </div>
-
-            <div className="hero-sticker sticker-bottom">
-              <Heart size={15} fill="currentColor" />
-              ALL IN
-            </div>
-
-            <div className="art-team art-team-one">
-              <span className="team-dot pink" />
-              CREAMLINE
-            </div>
-            <div className="art-team art-team-two">
-              <span className="team-dot purple" />
-              CHOCO MUCHO
-            </div>
-            <div className="art-team art-team-three">
-              <span className="team-dot orange" />
-              CRISS CROSS
-            </div>
-          </div>
-
-          <div className="hero-bottom">
-            <span>BUILT BY FANS, FOR FANS.</span>
-            <a href="#teams">
-              MEET YOUR TEAMS <ArrowDownRight size={14} />
-            </a>
-          </div>
-        </section>
-
-        <section className="team-strip" id="teams">
-          <div className="section-wrap">
-            <div className="section-heading team-heading">
-              <div>
-                <div className="eyebrow">
-                  <span className="eyebrow-line" />
-                  THREE TEAMS. ONE HOME.
-                </div>
-                <h2>
-                  Pick your <span className="gradient-text">side.</span>
-                </h2>
-              </div>
-              <p>
-                Different colors. Different journeys.
-                <br />
-                All welcome in this community.
-              </p>
-            </div>
-
-            <div className="team-grid">
-              {teams.map((team, index) => (
-                <article
-                  className={`team-card team-${team.accent}`}
-                  key={team.name}
-                >
-                  <div className="team-card-top">
-                    <span className="team-index">
-                      0{index + 1} / TEAM
-                    </span>
-                    <span className="team-monogram">
-                      {team.short}
-                    </span>
-                  </div>
-
-                  <div className="team-emblem" aria-hidden="true">
-                    <Volleyball size={53} strokeWidth={1.1} />
-                  </div>
-
-                  <div className="team-card-copy">
-                    <p className="team-competition">
-                      {team.competition}
-                    </p>
-                    <h3>{team.name}</h3>
-                    <p className="team-nickname">{team.nickname}</p>
-                    <p className="team-description">
-                      {team.description}
-                    </p>
-                  </div>
-
-                  <button
-                    className="team-link"
-                    type="button"
-                    onClick={() => {
-                      setActiveFilter(team.name as Team);
-                      setSearch("");
-                      goTo("updates");
-                    }}
-                  >
-                    Explore team stories <ArrowUpRight size={17} />
-                  </button>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="updates-section section-wrap" id="updates">
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">
-                <span className="eyebrow-line" />
-                FRESH FROM THE FAN HUB
-              </div>
-              <h2>
-                The <span className="gradient-text">latest.</span>
-              </h2>
-              <p className="section-description">
-                Team features, volleyball explainers, and
-                community stories—all in one place.
-              </p>
-            </div>
-
-            <span className="editorial-label">
-              <ShieldCheck size={16} />
-              FAN EDITORIAL
-            </span>
-          </div>
-
-          {searchOpen && (
-            <div className="search-panel">
-              <label htmlFor="story-search">
-                Search stories
-              </label>
-              <div className="search-input-wrap">
-                <Search size={19} aria-hidden="true" />
-                <input
-                  id="story-search"
-                  type="search"
-                  placeholder="Search teams, topics, or stories..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  autoFocus
-                />
-                {search && (
-                  <button
-                    type="button"
-                    className="clear-search"
-                    onClick={() => setSearch("")}
-                    aria-label="Clear search"
-                  >
-                    <X size={17} />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="filter-bar" aria-label="Filter stories by team">
-            <div className="filter-list">
-              {filters.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`filter-chip ${
-                    activeFilter === filter ? "active" : ""
-                  }`}
-                  aria-pressed={activeFilter === filter}
-                  onClick={() => setActiveFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
-
-            <span className="result-count" aria-live="polite">
-              {filteredStories.length}{" "}
-              {filteredStories.length === 1 ? "story" : "stories"}
-            </span>
-          </div>
-
-          <div className="story-grid">
-            {filteredStories.map((story) => (
-              <article className="story-card" key={story.id}>
-                <div className={`story-visual ${story.style}`}>
-                  <span className="story-category">
-                    {story.category}
-                  </span>
-                  <Volleyball
-                    className="story-ball"
-                    size={story.featured ? 90 : 70}
-                    strokeWidth={0.85}
-                    aria-hidden="true"
-                  />
-                  <span className="story-team">
-                    {story.team === "Community"
-                      ? "REBISCOmmunity"
-                      : story.team.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="story-copy">
-                  <span className="story-meta">
-                    {story.readTime}
-                  </span>
-                  <h3>{story.title}</h3>
-                  <p>{story.description}</p>
-
-                  {expandedStory === story.id && (
-                    <div className="story-extra">
-                      <p>
-                        This is a starter feature for the
-                        REBISCOmmunity website. Replace this
-                        sample with a fully researched article,
-                        verified facts, publication date, and
-                        credited media before publishing it as
-                        a real news report.
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    className="text-link"
-                    type="button"
-                    aria-expanded={expandedStory === story.id}
-                    onClick={() =>
-                      setExpandedStory((current) =>
-                        current === story.id ? null : story.id
-                      )
-                    }
-                  >
-                    {expandedStory === story.id
-                      ? "Show less"
-                      : "Read feature"}
-                    {expandedStory === story.id ? (
-                      <ChevronDown className="chevron-up" size={17} />
-                    ) : (
-                      <ArrowRight size={17} />
-                    )}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {filteredStories.length === 0 && (
-            <div className="empty-state">
-              <Search size={32} />
-              <h3>No stories found.</h3>
-              <p>
-                Try a different keyword or select another team.
-              </p>
-              <button
-                type="button"
-                className="button button-outline"
-                onClick={resetFilters}
-              >
-                Reset filters
-              </button>
-            </div>
-          )}
-
-          <p className="content-notice">
-            <ShieldCheck size={16} />
-            Sample editorial content is used in this starter.
-            No live news feed is connected yet.
-          </p>
-        </section>
-
-        <section className="match-section" id="matches">
-          <div className="section-wrap match-layout">
-            <div className="match-copy">
-              <div className="eyebrow">
-                <span className="eyebrow-line" />
-                YOUR COURTSIDE COMPANION
-              </div>
-              <h2>
-                Every match.
-                <br />
-                Every moment.
-                <br />
-                <span className="gradient-text">Together.</span>
-              </h2>
-              <p>
-                Find upcoming fixtures, follow the action, and
-                celebrate the final score. We're building a
-                dedicated match center for all three teams.
-              </p>
-              <a
-                className="button button-primary"
-                href="https://www.pvl.ph/schedule"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Check official PVL schedule
-                <ArrowUpRight size={17} />
-              </a>
-              <p className="external-note">
-                Opens the official PVL website. Check the
-                relevant competition for Criss Cross fixtures.
-              </p>
-            </div>
-
-            <div className="match-placeholder">
-              <div className="match-placeholder-icon">
-                <CalendarDays size={29} />
-              </div>
-              <span className="eyebrow">MATCH CENTER</span>
-              <h3>The next chapter starts here.</h3>
-              <p>
-                Official fixture data has not been connected.
-                Check the league's published schedule for
-                confirmed dates and times.
-              </p>
-              <div className="match-status">
-                <span className="status-dot" />
-                AWAITING VERIFIED FIXTURES
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="community-section section-wrap" id="community">
-          <div className="community-card">
-            <div className="community-decoration" aria-hidden="true">
-              <Volleyball size={185} strokeWidth={0.6} />
-            </div>
-
-            <div className="community-copy">
-              <div className="eyebrow">
-                <span className="eyebrow-line" />
-                YOUR VOICE MATTERS
-              </div>
-              <h2>
-                This is your
-                <br />
-                <span className="gradient-text">community.</span>
-              </h2>
-              <p>
-                Every fan has a story. Tell us which team
-                you're cheering for and help shape our fan hub.
-              </p>
-              <div className="community-promise">
-                <Users size={18} />
-                A place for all three teams.
-              </div>
-            </div>
-
-            <div className="poll-card">
-              <div className="poll-header">
-                <span className="poll-tag">FAN ROLL CALL</span>
-                <span className="poll-number">01 / 01</span>
-              </div>
-
-              <h3>Who's got your heart?</h3>
-              <p className="poll-description">
-                Choose your team to join our on-page demo poll.
-              </p>
-
-              {voteSubmitted ? (
-                <div className="poll-success" role="status">
-                  <span className="success-icon">
-                    <Check size={23} />
-                  </span>
-                  <h4>You're part of the fam!</h4>
-                  <p>
-                    You selected {vote}. Thanks for joining
-                    the REBISCOmmunity roll call.
-                  </p>
-                  <p className="poll-footnote">
-                    Demo only: your selection isn't stored
-                    or counted on a server.
-                  </p>
-                  <button
-                    type="button"
-                    className="text-link"
-                    onClick={() => {
-                      setVote(null);
-                      setVoteSubmitted(false);
-                    }}
-                  >
-                    Change selection <ArrowRight size={16} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="poll-options">
-                    {teams.map((team) => (
-                      <button
-                        type="button"
-                        key={team.name}
-                        className={`poll-option ${
-                          vote === team.name ? "selected" : ""
-                        }`}
-                        aria-pressed={vote === team.name}
-                        onClick={() => setVote(team.name as Team)}
-                      >
-                        <span className={`poll-dot ${team.accent}`} />
-                        <span>
-                          <strong>{team.name}</strong>
-                          <small>{team.nickname}</small>
-                        </span>
-                        <span className="poll-radio">
-                          {vote === team.name && <Check size={13} />}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="button button-primary poll-submit"
-                    disabled={!vote}
-                    onClick={submitPoll}
-                  >
-                    Count me in <ArrowRight size={17} />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="closing-strip">
-          <div className="section-wrap closing-inner">
-            <Trophy size={22} />
-            <p>
-              GOOD GAMES. BIG HEARTS. <strong>ONE REBISCOmmunity.</strong>
-            </p>
-            <button
-              type="button"
-              className="closing-link"
-              onClick={() => goTo("home")}
-            >
-              Back to top <ArrowUpRight size={15} />
-            </button>
-          </div>
-        </section>
-      </main>
-
-      <footer className="site-footer">
-        <div className="section-wrap footer-main">
-          <div className="footer-brand">
-            <a className="brand" href="#home">
-              <span className="brand-mark" aria-hidden="true">
-                <Volleyball size={25} />
-              </span>
-              <span className="brand-word">
-                REBISCO<span>mmunity</span>
-                <small>THE VOLLEYBALL FAN HUB</small>
-              </span>
-            </a>
-            <p>
-              Built by fans, for fans. Celebrating the game
-              and the people who make it special.
-            </p>
-          </div>
-
-          <div className="footer-column">
-            <h3>Explore</h3>
-            <a href="#updates">Latest stories</a>
-            <a href="#teams">Our teams</a>
-            <a href="#matches">Match center</a>
-          </div>
-
-          <div className="footer-column">
-            <h3>Community</h3>
-            <a href="#community">Fan roll call</a>
-            <a href="#updates">Volleyball 101</a>
-            <a href="#home">About the fan hub</a>
-          </div>
-
-          <div className="footer-column">
-            <h3>Official sources</h3>
-            <a
-              href="https://www.pvl.ph/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              PVL website <ArrowUpRight size={13} />
-            </a>
-            <a
-              href="https://www.rebisco.com.ph/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Rebisco website <ArrowUpRight size={13} />
-            </a>
-          </div>
-        </div>
-
-        <div className="section-wrap footer-bottom">
-          <span>
-            © {new Date().getFullYear()} REBISCOmmunity.
-            Built with love for volleyball.
-          </span>
-          <span className="independent-note">
-            Independent fan project. Not officially affiliated
-            with Rebisco, the teams, or their leagues.
-          </span>
-        </div>
-      </footer>
+      <AdminDashboard
+        articles={articles}
+        onCreate={() => { setError(''); setEditing(null) }}
+        onEdit={(article) => { setError(''); setEditing(article) }}
+        onDelete={(article) => void deleteArticle(article)}
+        onLogout={() => void logout()}
+        onRefresh={() => void refreshArticles()}
+        busy={loading}
+        error={error}
+        notice={notice}
+      />
+      {editing !== undefined && (
+        <ArticleEditor
+          key={editing?.id ?? 'new-article'}
+          article={editing}
+          saving={saving}
+          error={error}
+          onClose={() => { setEditing(undefined); setError('') }}
+          onSave={saveArticle}
+        />
+      )}
     </>
-  );
+  )
 }
 
-export default App;
+export default function App() {
+  const isAdminRoute = window.location.pathname.replace(/\/+$/, '') === '/admin'
+  return isAdminRoute ? <AdminApp /> : <PublicHome />
+}
