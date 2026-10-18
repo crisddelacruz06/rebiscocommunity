@@ -59,6 +59,58 @@ type ArticleForm = {
   status: 'draft' | 'published'
 }
 
+type ContentSection = 'home' | 'teams' | 'players' | 'standings' | 'schedule' | 'recaps' | 'live' | 'videos' | 'photos' | 'stats' | 'tickets'
+type SectionContent = {
+  id: string
+  section: ContentSection
+  title: string
+  slug: string
+  summary: string
+  body: string
+  image_url: string | null
+  external_url: string | null
+  metadata: Record<string, unknown>
+  status: 'draft' | 'published'
+  featured: boolean
+  sort_order: number
+  published_at: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+type SectionContentForm = {
+  section: ContentSection
+  title: string
+  slug: string
+  summary: string
+  body: string
+  image_url: string
+  external_url: string
+  metadata: string
+  status: 'draft' | 'published'
+  featured: boolean
+  sort_order: string
+}
+
+const CONTENT_SECTIONS: { value: ContentSection; label: string; path: string }[] = [
+  { value: 'home', label: 'Home highlights', path: '/' },
+  { value: 'teams', label: 'Teams', path: '/teams' },
+  { value: 'players', label: 'Players', path: '/players' },
+  { value: 'standings', label: 'Standings', path: '/standings' },
+  { value: 'schedule', label: 'Schedule', path: '/schedule' },
+  { value: 'recaps', label: 'Recaps', path: '/recaps' },
+  { value: 'live', label: 'Live', path: '/live' },
+  { value: 'videos', label: 'Videos', path: '/videos' },
+  { value: 'photos', label: 'Photos', path: '/photos' },
+  { value: 'stats', label: 'Stats', path: '/stats' },
+  { value: 'tickets', label: 'Tickets', path: '/tickets' },
+]
+
+const EMPTY_SECTION_FORM: SectionContentForm = {
+  section: 'home', title: '', slug: '', summary: '', body: '', image_url: '',
+  external_url: '', metadata: '{}', status: 'draft', featured: false, sort_order: '0',
+}
+
 const EMPTY_FORM: ArticleForm = {
   title: '',
   slug: '',
@@ -280,6 +332,7 @@ function ArticleReader({
 
 function PublicHome() {
   const [articles, setArticles] = useState<Article[]>([])
+  const [homeHighlights, setHomeHighlights] = useState<SectionContent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [team, setTeam] = useState<string>('All Teams')
@@ -295,18 +348,34 @@ function PublicHome() {
         setLoading(false)
         return
       }
-      const { data, error: queryError } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('status', 'published')
-        .not('published_at', 'is', null)
-        .lte('published_at', new Date().toISOString())
-        .order('published_at', { ascending: false })
-        .limit(100)
+      const now = new Date().toISOString()
+      const [{ data, error: queryError }, { data: highlightData, error: highlightError }] = await Promise.all([
+        supabase
+          .from('articles')
+          .select('*')
+          .eq('status', 'published')
+          .not('published_at', 'is', null)
+          .lte('published_at', now)
+          .order('published_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('section_content')
+          .select('*')
+          .eq('section', 'home')
+          .eq('status', 'published')
+          .not('published_at', 'is', null)
+          .lte('published_at', now)
+          .order('featured', { ascending: false })
+          .order('sort_order', { ascending: true })
+          .order('published_at', { ascending: false })
+          .limit(8),
+      ])
 
       if (!active) return
       if (queryError) setError('We could not load updates. Check your Supabase setup and database policies.')
       else setArticles((data ?? []) as Article[])
+      if (highlightError) console.error('Home highlights could not be loaded:', highlightError.message)
+      else setHomeHighlights((highlightData ?? []) as SectionContent[])
       setLoading(false)
     }
     void loadArticles()
@@ -371,6 +440,32 @@ function PublicHome() {
             ))}
           </div>
         </section>
+
+        {homeHighlights.length > 0 && (
+          <section className="site-container published-home-section" aria-labelledby="home-highlights-title">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow"><Sparkles size={15} /> FROM THE COMMUNITY DESK</span>
+                <h2 id="home-highlights-title">FEATURED <span>HIGHLIGHTS.</span></h2>
+                <p className="section-subtitle">Updates selected by the REBISCOmmunity editors.</p>
+              </div>
+            </div>
+            <div className="published-content-grid">
+              {homeHighlights.map(item => (
+                <article className="published-content-card" key={item.id}>
+                  {item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <div className="published-content-art"><Volleyball size={48} /></div>}
+                  <div className="published-content-copy">
+                    {item.featured && <span className="status-pill status-featured">EDITOR'S PICK</span>}
+                    <h3>{item.title}</h3>
+                    {item.summary && <p>{item.summary}</p>}
+                    {item.body && <p>{item.body}</p>}
+                    {item.external_url && <a className="read-link" href={item.external_url} target="_blank" rel="noopener noreferrer">OPEN LINK <ExternalLink size={15} /></a>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="news-section site-container" id="latest">
           <div className="section-heading">
@@ -489,6 +584,7 @@ function AdminDashboard({
   onDelete,
   onLogout,
   onRefresh,
+  onManageSections,
   busy,
   error,
   notice,
@@ -499,6 +595,7 @@ function AdminDashboard({
   onDelete: (article: Article) => void
   onLogout: () => void
   onRefresh: () => void
+  onManageSections: () => void
   busy: boolean
   error: string
   notice: string
@@ -512,6 +609,7 @@ function AdminDashboard({
         <a href="/" className="brand admin-brand"><span className="brand-icon"><Volleyball size={24} /></span><span className="brand-wordmark">REBISCO<span>mmunity</span><small>EDITORIAL DESK</small></span></a>
         <div className="admin-nav-label">WORKSPACE</div>
         <a className="admin-side-link active" href="/admin"><Newspaper size={17} /> Articles <span>{articles.length}</span></a>
+        <button className="admin-side-link" onClick={onManageSections}><FilePenLine size={17} /> Website sections <ArrowRight size={15} /></button>
         <a className="admin-side-link" href="/"><Eye size={17} /> View website <ArrowUpRight size={15} /></a>
         <div className="admin-sidebar-bottom">
           <div className="admin-identity"><span><CircleUserRound size={20} /></span><div><strong>Editor account</strong><small>Authorized session</small></div></div>
@@ -628,11 +726,177 @@ function ArticleEditor({
   )
 }
 
+function SectionContentEditor({
+  item,
+  saving,
+  error,
+  onClose,
+  onSave,
+}: {
+  item: SectionContent | null
+  saving: boolean
+  error: string
+  onClose: () => void
+  onSave: (form: SectionContentForm) => Promise<void>
+}) {
+  const [form, setForm] = useState<SectionContentForm>(item ? {
+    section: item.section,
+    title: item.title,
+    slug: item.slug,
+    summary: item.summary,
+    body: item.body,
+    image_url: item.image_url ?? '',
+    external_url: item.external_url ?? '',
+    metadata: JSON.stringify(item.metadata ?? {}, null, 2),
+    status: item.status,
+    featured: item.featured,
+    sort_order: String(item.sort_order ?? 0),
+  } : EMPTY_SECTION_FORM)
+  const [slugEdited, setSlugEdited] = useState(Boolean(item))
+  const [validationError, setValidationError] = useState('')
+
+  function change<K extends keyof SectionContentForm>(key: K, value: SectionContentForm[K]) {
+    setForm(previous => ({
+      ...previous,
+      [key]: value,
+      ...(key === 'title' && !slugEdited ? { slug: makeSlug(String(value)) } : {}),
+    }))
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setValidationError('')
+    if (!form.title.trim() || !form.slug.trim()) {
+      setValidationError('A title and URL slug are required.')
+      return
+    }
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(form.slug)) {
+      setValidationError('Use lowercase letters, numbers, and hyphens in the slug.')
+      return
+    }
+    if (!isValidHttpUrl(form.image_url) || !isValidHttpUrl(form.external_url)) {
+      setValidationError('Image and external links must be valid HTTP or HTTPS URLs.')
+      return
+    }
+    try {
+      const metadata = JSON.parse(form.metadata || '{}')
+      if (!metadata || Array.isArray(metadata) || typeof metadata !== 'object') {
+        setValidationError('Metadata must be a JSON object, for example: {"season":"2026"}.')
+        return
+      }
+    } catch {
+      setValidationError('Metadata must be valid JSON, for example: {"season":"2026"}.')
+      return
+    }
+    await onSave(form)
+  }
+
+  return (
+    <div className="editor-overlay">
+      <section className="editor-panel" role="dialog" aria-modal="true" aria-labelledby="section-editor-title">
+        <div className="editor-topbar">
+          <div><span className="eyebrow">WEBSITE CONTENT</span><h2 id="section-editor-title">{item ? 'EDIT SECTION ITEM' : 'NEW SECTION ITEM'}</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Close section editor"><X /></button>
+        </div>
+        <form className="editor-form editor-form-full" onSubmit={submit}>
+          <label>Website section *
+            <select value={form.section} onChange={event => change('section', event.target.value as ContentSection)}>
+              {CONTENT_SECTIONS.map(section => <option key={section.value} value={section.value}>{section.label}</option>)}
+            </select>
+          </label>
+          <label>Title *<input required maxLength={180} value={form.title} onChange={event => change('title', event.target.value)} placeholder="Content title" /></label>
+          <label>URL slug *<input required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={form.slug} onChange={event => { setSlugEdited(true); change('slug', event.target.value) }} placeholder="content-item-slug" /><small>Unique within the selected section.</small></label>
+          <label>Short summary<textarea rows={3} maxLength={600} value={form.summary} onChange={event => change('summary', event.target.value)} placeholder="A short introduction shown in listings." /></label>
+          <label>Content / details<textarea rows={7} maxLength={30000} value={form.body} onChange={event => change('body', event.target.value)} placeholder="Add verified information. For schedules or stats, include season and source details." /></label>
+          <div className="form-two-col">
+            <label>Image URL<input type="url" value={form.image_url} onChange={event => change('image_url', event.target.value)} placeholder="https://..." /></label>
+            <label>External / official URL<input type="url" value={form.external_url} onChange={event => change('external_url', event.target.value)} placeholder="https://..." /></label>
+          </div>
+          <label>Metadata (JSON object)<textarea rows={4} value={form.metadata} onChange={event => change('metadata', event.target.value)} spellCheck={false} placeholder={'{"season":"2026","venue":"..."}'} /><small>Optional structured fields for players, matches, standings, or statistics.</small></label>
+          <div className="form-two-col">
+            <label>Display order<input type="number" step="1" value={form.sort_order} onChange={event => change('sort_order', event.target.value)} /></label>
+            <label>Publication status<select value={form.status} onChange={event => change('status', event.target.value as SectionContentForm['status'])}><option value="draft">Draft — private</option><option value="published">Published — public</option></select></label>
+          </div>
+          <label className="editor-checkbox-label"><input type="checkbox" checked={form.featured} onChange={event => change('featured', event.target.checked)} /> Feature this item in its section</label>
+          {validationError && <div className="form-error" role="alert">{validationError}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <div className="editor-actions"><button type="button" className="button button-outline" onClick={onClose}>CANCEL</button><button className="button button-primary" disabled={saving}>{saving ? 'SAVING…' : form.status === 'published' ? 'SAVE & PUBLISH' : 'SAVE DRAFT'} <ArrowRight size={16} /></button></div>
+          <p className="editor-hint"><ShieldCheck size={15} /> Public pages can read published items. Supabase RLS controls who can change them.</p>
+        </form>
+      </section>
+    </div>
+  )
+}
+
+function SectionContentDashboard({
+  items,
+  loading,
+  error,
+  notice,
+  onCreate,
+  onEdit,
+  onDelete,
+  onRefresh,
+  onBack,
+  onLogout,
+}: {
+  items: SectionContent[]
+  loading: boolean
+  error: string
+  notice: string
+  onCreate: () => void
+  onEdit: (item: SectionContent) => void
+  onDelete: (item: SectionContent) => void
+  onRefresh: () => void
+  onBack: () => void
+  onLogout: () => void
+}) {
+  const [sectionFilter, setSectionFilter] = useState<ContentSection | 'all'>('all')
+  const visibleItems = items.filter(item => sectionFilter === 'all' || item.section === sectionFilter)
+  const publishedCount = items.filter(item => item.status === 'published').length
+  const draftCount = items.length - publishedCount
+  const sectionLabel = (value: string) => CONTENT_SECTIONS.find(section => section.value === value)?.label ?? value
+
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <a href="/" className="brand admin-brand"><span className="brand-icon"><Volleyball size={24} /></span><span className="brand-wordmark">REBISCO<span>mmunity</span><small>EDITORIAL DESK</small></span></a>
+        <div className="admin-nav-label">WORKSPACE</div>
+        <button className="admin-side-link" onClick={onBack}><Newspaper size={17} /> Articles</button>
+        <button className="admin-side-link active"><FilePenLine size={17} /> Website sections <span>{items.length}</span></button>
+        <a className="admin-side-link" href="/" target="_blank" rel="noreferrer"><Eye size={17} /> View website <ArrowUpRight size={15} /></a>
+        <div className="admin-sidebar-bottom">
+          <div className="admin-identity"><span><CircleUserRound size={20} /></span><div><strong>Editor account</strong><small>Authorized session</small></div></div>
+          <button className="admin-side-link logout-link" onClick={onLogout}><LogOut size={17} /> Sign out</button>
+        </div>
+      </aside>
+      <main className="admin-main">
+        <div className="admin-topbar"><span><span className="live-dot" /> WEBSITE CONTENT MANAGER</span><a href="/" target="_blank" rel="noreferrer">VIEW LIVE SITE <ExternalLink size={14} /></a></div>
+        <div className="admin-content">
+          <div className="admin-page-heading"><div><span className="eyebrow">CONTENT STUDIO</span><h1>SECTION <span>MANAGEMENT.</span></h1><p>Manage homepage highlights and content records for all website sections.</p></div><button className="button button-primary" onClick={onCreate}><Plus size={18} /> NEW CONTENT</button></div>
+          {notice && <div className="notice notice-success" role="status"><CheckCircle2 size={19} />{notice}</div>}
+          {error && <div className="notice notice-warning" role="alert"><ShieldCheck size={19} />{error}</div>}
+          <div className="admin-stat-grid"><div className="admin-stat"><span>TOTAL CONTENT</span><strong>{items.length}</strong><FilePenLine size={22} /></div><div className="admin-stat"><span>PUBLISHED</span><strong>{publishedCount}</strong><CheckCircle2 size={22} /></div><div className="admin-stat"><span>DRAFTS</span><strong>{draftCount}</strong><Newspaper size={22} /></div></div>
+          <div className="section-manager-controls"><label className="select-field"><Filter size={16} /><select aria-label="Filter by website section" value={sectionFilter} onChange={event => setSectionFilter(event.target.value as ContentSection | 'all')}><option value="all">All website sections</option>{CONTENT_SECTIONS.map(section => <option key={section.value} value={section.value}>{section.label}</option>)}</select><ChevronDown size={15} /></label><button className="button button-outline button-small" onClick={onRefresh} disabled={loading}>REFRESH <ArrowRight size={15} /></button></div>
+          <div className="admin-list-heading"><div><h2>CONTENT ITEMS</h2><span>{visibleItems.length} records shown</span></div></div>
+          {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading website content…</p></div> : visibleItems.length === 0 ? <div className="empty-state"><div className="empty-icon"><FilePenLine size={30} /></div><h3>No content in this view yet.</h3><p>Create a content item for a section. Drafts remain private; published records become available to public pages once connected.</p><button className="button button-primary" onClick={onCreate}><Plus size={17} /> CREATE CONTENT</button></div> : <div className="admin-article-list">{visibleItems.map(item => <article className="admin-article-row" key={item.id}><div className="admin-row-image">{item.image_url ? <img src={item.image_url} alt="" /> : <FilePenLine size={25} />}</div><div className="admin-row-copy"><div className="admin-row-meta"><span className={`status-pill status-${item.status}`}>{item.status}</span><span>{sectionLabel(item.section)}</span>{item.featured && <span className="status-pill status-featured">FEATURED</span>}</div><h3>{item.title}</h3><p>{item.summary || item.body.slice(0, 150) || 'No summary added.'}</p><small>/{item.section}/{item.slug} · Updated {formatDate(item.updated_at)}</small></div><div className="admin-row-actions"><button className="icon-button" onClick={() => onEdit(item)} aria-label={`Edit ${item.title}`}><FilePenLine size={18} /></button><button className="icon-button danger-icon" onClick={() => onDelete(item)} aria-label={`Delete ${item.title}`}><Trash2 size={18} /></button></div></article>)}</div>}
+          <p className="admin-security-note"><ShieldCheck size={16} /> This manager uses the existing Supabase admin allowlist and section_content RLS policies.</p>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 function AdminApp() {
   const [sessionReady, setSessionReady] = useState(false)
   const [sessionUser, setSessionUser] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
+  const [sectionItems, setSectionItems] = useState<SectionContent[]>([])
+  const [adminView, setAdminView] = useState<'articles' | 'sections'>('articles')
+  const [sectionLoading, setSectionLoading] = useState(false)
+  const [sectionSaving, setSectionSaving] = useState(false)
+  const [editingSection, setEditingSection] = useState<SectionContent | null | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<Article | null | undefined>(undefined)
@@ -662,6 +926,81 @@ function AdminApp() {
     if (queryError) setError('Could not load articles. Verify the database SQL and your administrator permissions.')
     else setArticles((data ?? []) as Article[])
     setLoading(false)
+  }
+
+  async function refreshSectionContent() {
+    if (!supabase || !isAdmin) return
+    setSectionLoading(true)
+    setError('')
+    const { data, error: queryError } = await supabase
+      .from('section_content')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(500)
+    if (queryError) setError('Could not load section content. Confirm the section_content SQL succeeded and your admin_users permissions are correct.')
+    else setSectionItems((data ?? []) as SectionContent[])
+    setSectionLoading(false)
+  }
+
+  async function saveSectionContent(form: SectionContentForm) {
+    if (!supabase || !sessionUser || !isAdmin) {
+      setError('Your administrator session is not valid. Sign in again.')
+      return
+    }
+    setSectionSaving(true)
+    setError('')
+    let metadata: Record<string, unknown>
+    try {
+      metadata = JSON.parse(form.metadata || '{}') as Record<string, unknown>
+    } catch {
+      setError('Metadata must be valid JSON.')
+      setSectionSaving(false)
+      return
+    }
+    const payload = {
+      section: form.section,
+      title: form.title.trim(),
+      slug: form.slug.trim(),
+      summary: form.summary.trim(),
+      body: form.body.trim(),
+      image_url: form.image_url.trim() || null,
+      external_url: form.external_url.trim() || null,
+      metadata,
+      status: form.status,
+      featured: form.featured,
+      sort_order: Number.parseInt(form.sort_order || '0', 10) || 0,
+      published_at: form.status === 'published'
+        ? (editingSection && editingSection.published_at ? editingSection.published_at : new Date().toISOString())
+        : null,
+      created_by: editingSection && editingSection.created_by ? editingSection.created_by : sessionUser,
+      updated_at: new Date().toISOString(),
+    }
+    const result = editingSection
+      ? await supabase.from('section_content').update(payload).eq('id', editingSection.id)
+      : await supabase.from('section_content').insert(payload)
+    if (result.error) {
+      setError(result.error.code === '23505'
+        ? 'That slug is already used in this section. Choose a different slug.'
+        : 'Could not save content. Check the section_content columns and Supabase administrator policies.')
+      setSectionSaving(false)
+      return
+    }
+    setNotice(form.status === 'published' ? 'Section content saved and published.' : 'Section draft saved.')
+    setEditingSection(undefined)
+    await refreshSectionContent()
+    setSectionSaving(false)
+  }
+
+  async function deleteSectionContent(item: SectionContent) {
+    if (!supabase || !isAdmin) return
+    if (!window.confirm(`Permanently delete "${item.title}" from ${item.section}? This cannot be undone.`)) return
+    setError('')
+    const { error: deleteError } = await supabase.from('section_content').delete().eq('id', item.id)
+    if (deleteError) setError('Content could not be deleted. Check your administrator permissions.')
+    else {
+      setNotice('Section content deleted.')
+      await refreshSectionContent()
+    }
   }
 
   useEffect(() => {
@@ -704,8 +1043,11 @@ function AdminApp() {
   }, [])
 
   useEffect(() => {
-    if (sessionReady && sessionUser && isAdmin) void refreshArticles()
-  }, [sessionReady, sessionUser, isAdmin])
+    if (sessionReady && sessionUser && isAdmin) {
+      if (adminView === 'articles') void refreshArticles()
+      else void refreshSectionContent()
+    }
+  }, [sessionReady, sessionUser, isAdmin, adminView])
 
   async function login(email: string, password: string): Promise<string | null> {
     if (!supabase) return 'Supabase is not configured. Add your environment variables and restart Vite.'
@@ -787,6 +1129,8 @@ function AdminApp() {
     setSessionUser(null)
     setIsAdmin(false)
     setArticles([])
+    setSectionItems([])
+    setAdminView('articles')
     setNotice('')
     setError('')
   }
@@ -833,18 +1177,34 @@ function AdminApp() {
 
   return (
     <>
-      <AdminDashboard
-        articles={articles}
-        onCreate={() => { setError(''); setEditing(null) }}
-        onEdit={(article) => { setError(''); setEditing(article) }}
-        onDelete={(article) => void deleteArticle(article)}
-        onLogout={() => void logout()}
-        onRefresh={() => void refreshArticles()}
-        busy={loading}
-        error={error}
-        notice={notice}
-      />
-      {editing !== undefined && (
+      {adminView === 'articles' ? (
+        <AdminDashboard
+          articles={articles}
+          onCreate={() => { setError(''); setEditing(null) }}
+          onEdit={(article) => { setError(''); setEditing(article) }}
+          onDelete={(article) => void deleteArticle(article)}
+          onLogout={() => void logout()}
+          onRefresh={() => void refreshArticles()}
+          onManageSections={() => { setError(''); setNotice(''); setAdminView('sections') }}
+          busy={loading}
+          error={error}
+          notice={notice}
+        />
+      ) : (
+        <SectionContentDashboard
+          items={sectionItems}
+          loading={sectionLoading}
+          error={error}
+          notice={notice}
+          onCreate={() => { setError(''); setEditingSection(null) }}
+          onEdit={(item) => { setError(''); setEditingSection(item) }}
+          onDelete={(item) => void deleteSectionContent(item)}
+          onRefresh={() => void refreshSectionContent()}
+          onBack={() => { setError(''); setNotice(''); setAdminView('articles') }}
+          onLogout={() => void logout()}
+        />
+      )}
+      {editing !== undefined && adminView === 'articles' && (
         <ArticleEditor
           key={editing?.id ?? 'new-article'}
           article={editing}
@@ -852,6 +1212,16 @@ function AdminApp() {
           error={error}
           onClose={() => { setEditing(undefined); setError('') }}
           onSave={saveArticle}
+        />
+      )}
+      {editingSection !== undefined && adminView === 'sections' && (
+        <SectionContentEditor
+          key={editingSection?.id ?? 'new-section-content'}
+          item={editingSection}
+          saving={sectionSaving}
+          error={error}
+          onClose={() => { setEditingSection(undefined); setError('') }}
+          onSave={saveSectionContent}
         />
       )}
     </>
@@ -893,6 +1263,40 @@ const SECTION_CONFIG: Record<string, SectionConfig> = {
 function SectionPage({ sectionKey }: { sectionKey: string }) {
   const config = SECTION_CONFIG[sectionKey]
   const Icon = config.icon
+  const [items, setItems] = useState<SectionContent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    async function loadSection() {
+      if (!supabase) {
+        setLoadError('The content service is not configured. Please try again later.')
+        setLoading(false)
+        return
+      }
+      const { data, error: queryError } = await supabase
+        .from('section_content')
+        .select('*')
+        .eq('section', sectionKey)
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+        .lte('published_at', new Date().toISOString())
+        .order('featured', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('published_at', { ascending: false })
+        .limit(100)
+      if (!active) return
+      if (queryError) setLoadError('We could not load this section. Please try again later.')
+      else setItems((data ?? []) as SectionContent[])
+      setLoading(false)
+    }
+    void loadSection()
+    return () => { active = false }
+  }, [sectionKey])
+
+  const fallbackTeams = sectionKey === 'teams' && items.length === 0 ? config.items : undefined
+
   return (
     <>
       <Header />
@@ -909,9 +1313,27 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
           </div>
         </section>
         <section className="site-container section-page-content">
-          {config.items ? (
+          {loadError && <div className="notice notice-warning" role="status"><ShieldCheck size={20} /><p>{loadError}</p></div>}
+          {loading ? (
+            <div className="empty-state"><span className="loading-spinner" /><p>Loading published content…</p></div>
+          ) : items.length > 0 ? (
+            <div className="published-content-grid">
+              {items.map(item => (
+                <article className="published-content-card" key={item.id}>
+                  {item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <div className="published-content-art"><Icon size={44} /></div>}
+                  <div className="published-content-copy">
+                    {item.featured && <span className="status-pill status-featured">FEATURED</span>}
+                    <h2>{item.title}</h2>
+                    {item.summary && <p>{item.summary}</p>}
+                    {item.body && <p className="published-content-body">{item.body}</p>}
+                    {item.external_url && <a className="read-link" href={item.external_url} target="_blank" rel="noopener noreferrer">OFFICIAL / MORE INFO <ExternalLink size={15} /></a>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : fallbackTeams ? (
             <div className="section-team-grid">
-              {config.items.map((item, index) => (
+              {fallbackTeams.map((item, index) => (
                 <article className={`section-team-card section-team-card-${index}`} key={item.title}>
                   <span className="section-team-number">0{index + 1}</span>
                   <div className="section-team-icon"><Volleyball size={34} /></div>
@@ -924,10 +1346,10 @@ function SectionPage({ sectionKey }: { sectionKey: string }) {
           ) : (
             <div className="section-empty-state">
               <div className="empty-icon"><Icon size={28} /></div>
-              <span className="eyebrow">COMING TO THE FAN DESK</span>
+              <span className="eyebrow">CONTENT DESK</span>
               <h2>{config.status}</h2>
-              <p>We're keeping this page transparent rather than showing made-up fixtures, scores, player statistics, streams, or ticket availability. In the meantime, explore published articles and verified source links.</p>
-              <a className="button button-primary" href="/news">BROWSE PUBLISHED STORIES <ArrowRight size={17} /></a>
+              <p>No published entries are available for this page yet. Create a content item in the admin dashboard and publish it to make it appear here. Drafts remain hidden from public visitors.</p>
+              <a className="button button-primary" href="/admin">OPEN THE NEWSROOM <ArrowRight size={17} /></a>
             </div>
           )}
         </section>
