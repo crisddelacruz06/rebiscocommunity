@@ -3174,3 +3174,48 @@ textarea:focus-visible {
 .team-detail-bottom .button-outline:hover { color:var(--court-black); }
 @media(max-width:800px) { .team-article-grid,.team-recap-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .team-profile-feature { grid-template-columns:1fr; } .team-profile-feature img { max-height:320px; min-height:200px; } .team-match-row { grid-template-columns:1fr auto 34px; } .team-match-date { grid-column:1/-1; } .team-match-info { grid-column:1; } .team-match-status { grid-column:2; grid-row:2; } .team-match-open { grid-column:3; grid-row:2; } .team-detail-bottom { align-items:flex-start; flex-direction:column; } }
 @media(max-width:520px) { .team-detail-hero-inner { min-height:390px; padding-bottom:38px; } .team-detail-hero h1 { font-size:clamp(39px,12vw,58px); } .team-detail-intro { font-size:13px; } .team-detail-content { padding-top:30px; } .team-article-grid,.team-recap-grid { grid-template-columns:1fr; } .team-detail-section-heading { align-items:flex-start; flex-direction:column; } .team-match-row { gap:10px; padding:14px; } .team-match-info strong { font-size:12px; } .team-match-info span { line-height:1.5; } .team-detail-bottom > div:last-child { flex-direction:column; align-items:stretch; width:100%; } .team-detail-bottom .button { justify-content:center; } }
+
+
+/* Phase 2K — Player directory and profile pages */
+.player-directory-hero{background:var(--court-black,#20232B);color:var(--volley-cream,#F5F1E9);padding:clamp(3.5rem,8vw,7rem) 0}
+.player-directory-hero .site-container{max-width:1240px}
+.player-directory-hero .eyebrow{display:inline-flex;align-items:center;gap:.55rem;color:#E94D91;font-size:.76rem;font-weight:800;letter-spacing:.14em}
+.player-directory-hero h1{margin:1.15rem 0 .8rem;font-size:clamp(2.8rem,8vw,6.6rem);line-height:.94;letter-spacing:-.065em;font-weight:950}
+.player-directory-hero h1 span{color:#E94D91}
+.player-directory-hero p{max-width:650px;color:#E2DDD5;font-size:clamp(1rem,2vw,1.18rem);line-height:1.7;margin:0 0 1.6rem}
+.player-directory-content{padding-top:2.5rem;padding-bottom:5rem}
+.player-directory-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,260px);gap:1rem;align-items:center}
+.player-team-filter{display:grid;gap:.35rem;color:var(--court-black,#20232B);font-size:.72rem;font-weight:800;letter-spacing:.08em}
+.player-team-filter select{width:100%;min-height:48px;border:1px solid #D8D2C9;border-radius:12px;background:#fff;padding:.7rem .85rem;color:#20232B;font:inherit;letter-spacing:normal}
+.player-result-count{font-size:.85rem;color:#6D6A66;margin:1.2rem 0}
+.player-profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.2rem}
+.player-profile-card{min-width:0;border:1px solid #E5DED5;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(32,35,43,.05);transition:transform .2s ease,box-shadow .2s ease}
+.player-profile-card:hover{transform:translateY(-3px);box-shadow:0 16px 34px rgba(32,35,43,.12)}
+.player-profile-card-link{display:flex;height:100%;flex-direction:column;color:inherit;text-decoration:none}
+.player-profile-card-image{width:100%;aspect-ratio:4/3;object-fit:cover;background:#F0EBE4;color:var(--player-accent,#E94D91)}
+.player-profile-photo-placeholder{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#F5F1E9,#E8E0D8);color:var(--player-accent,#E94D91)}
+.player-profile-card-copy{display:flex;flex:1;flex-direction:column;align-items:flex-start;padding:1.15rem}
+.player-profile-card-team{display:inline-block;border-radius:999px;background:color-mix(in srgb,var(--player-accent,#E94D91) 13%,white);color:var(--court-black,#20232B);padding:.35rem .6rem;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.player-profile-card h2{margin:.8rem 0 .45rem;font-size:1.35rem;line-height:1.15;letter-spacing:-.025em}
+.player-profile-card p{margin:0;color:#66615B;font-size:.92rem;line-height:1.6}
+.player-profile-card-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.85rem}
+.player-profile-card-meta span{border:1px solid #E7E0D8;border-radius:999px;padding:.3rem .55rem;font-size:.76rem;color:#504C47}
+.player-profile-card .read-link{margin-top:auto;padding-top:1rem;color:var(--player-accent,#E94D91)}
+.player-detail-page{padding-top:2rem;padding-bottom:5rem;max-width:1120px}
+.player-profile-detail{margin-top:1.5rem}
+.player-profile-hero{display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr);gap:clamp(1.5rem,4vw,3rem);align-items:center;background:#20232B;color:#F5F1E9;border-radius:24px;padding:clamp(1.2rem,4vw,2.5rem);border-bottom:6px solid var(--player-accent,#E94D91)}
+.player-profile-photo{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:16px;background:#F5F1E9;color:var(--player-accent,#E94D91)}
+.player-profile-heading .eyebrow{color:var(--player-accent,#E94D91);font-size:.75rem;font-weight:900;letter-spacing:.14em}
+.player-profile-heading h1{font-size:clamp(2.2rem,5vw,4.6rem);line-height:.98;letter-spacing:-.055em;margin:.8rem 0}
+.player-profile-heading>p{color:#E3DDD5;line-height:1.7}
+.player-profile-heading .player-profile-team{font-weight:800;color:var(--player-accent,#E94D91)}
+.player-profile-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;margin:1.2rem 0}
+.player-profile-facts>div{display:flex;flex-direction:column;gap:.4rem;border:1px solid #E4DDD5;border-radius:14px;padding:1rem;background:#fff;min-width:0}
+.player-profile-facts small{font-size:.68rem;letter-spacing:.1em;font-weight:900;color:#77716B}
+.player-profile-facts strong{font-size:1rem;overflow-wrap:anywhere}
+.player-profile-bio{padding:1.5rem 0;border-bottom:1px solid #E5DED5}
+.player-profile-bio h2{font-size:1rem;letter-spacing:.08em}
+.player-profile-bio p{white-space:pre-line;color:#4F4A45;line-height:1.8}
+.player-profile-actions{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.4rem 0}
+@media(max-width:850px){.player-profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.player-profile-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.player-directory-tools{grid-template-columns:1fr}.player-profile-grid{grid-template-columns:1fr}.player-profile-hero{grid-template-columns:1fr}.player-profile-photo{max-width:320px;aspect-ratio:4/3}.player-profile-heading h1{font-size:clamp(2.4rem,12vw,4rem)}.player-profile-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.player-profile-actions .button{width:100%;justify-content:center}}

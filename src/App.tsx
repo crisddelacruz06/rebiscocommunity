@@ -1954,10 +1954,129 @@ function MatchDetail({ item }: { item: SectionContent }) {
   )
 }
 
+
+type PlayerTeamKey = 'creamline' | 'choco-mucho' | 'criss-cross'
+
+const PLAYER_TEAM_OPTIONS: { key: PlayerTeamKey; name: string; short: string; accent: string; terms: string[] }[] = [
+  { key: 'creamline', name: 'Creamline Cool Smashers', short: 'CREAMLINE', accent: '#E94D91', terms: ['creamline', 'cool smashers'] },
+  { key: 'choco-mucho', name: 'Choco Mucho Flying Titans', short: 'CHOCO MUCHO', accent: '#7954CF', terms: ['choco mucho', 'flying titans'] },
+  { key: 'criss-cross', name: 'Criss Cross King Crunchers', short: 'CRISS CROSS', accent: '#F28A36', terms: ['criss cross', 'king crunchers'] },
+]
+
+function playerTeamFor(item: SectionContent) {
+  const metadata = item.metadata ?? {}
+  const teamValue = metadataText(metadata, 'team', 'team_name', 'club').toLowerCase()
+  const combined = `${item.title} ${item.summary} ${item.body} ${teamValue}`.toLowerCase()
+  return PLAYER_TEAM_OPTIONS.find(team => team.terms.some(term => combined.includes(term))) ?? null
+}
+
+function PlayerProfilesPage({ slug }: { slug?: string }) {
+  const [players, setPlayers] = useState<SectionContent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [search, setSearch] = useState('')
+  const [teamFilter, setTeamFilter] = useState<PlayerTeamKey | 'all'>('all')
+
+  useEffect(() => {
+    let active = true
+    async function loadPlayers() {
+      if (!supabase) {
+        setLoadError('The content service is not configured. Please try again later.')
+        setLoading(false)
+        return
+      }
+      const { data, error } = await supabase
+        .from('section_content')
+        .select('*')
+        .eq('section', 'players')
+        .eq('status', 'published')
+        .not('published_at', 'is', null)
+        .lte('published_at', new Date().toISOString())
+        .order('featured', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('published_at', { ascending: false })
+        .limit(200)
+      if (!active) return
+      if (error) setLoadError('We could not load player profiles. Please try again later.')
+      else setPlayers((data ?? []) as SectionContent[])
+      setLoading(false)
+    }
+    void loadPlayers()
+    return () => { active = false }
+  }, [])
+
+  const selectedPlayer = slug ? players.find(player => player.slug === slug) : undefined
+  const filteredPlayers = useMemo(() => players.filter(player => {
+    const query = search.trim().toLowerCase()
+    const team = playerTeamFor(player)
+    const matchesTeam = teamFilter === 'all' || team?.key === teamFilter
+    const searchable = [player.title, player.summary, player.body, ...Object.values(player.metadata ?? {}).map(value => typeof value === 'string' || typeof value === 'number' ? String(value) : '')].join(' ').toLowerCase()
+    return matchesTeam && (!query || searchable.includes(query))
+  }), [players, search, teamFilter])
+
+  if (slug) {
+    return (
+      <>
+        <Header />
+        <main className="player-detail-page site-container">
+          <a className="match-back-link" href="/players"><ArrowLeft size={16} /> ALL PLAYER PROFILES</a>
+          {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading player profile…</p></div> : loadError ? <div className="notice notice-warning" role="status"><ShieldCheck size={20} /><p>{loadError}</p></div> : !selectedPlayer ? (
+            <div className="section-empty-state"><div className="empty-icon"><CircleUserRound size={28} /></div><span className="eyebrow">PLAYER DIRECTORY</span><h1>PROFILE NOT FOUND</h1><p>This profile may not be published, may have been removed, or the link may be incorrect.</p><a className="button button-primary" href="/players">BACK TO PLAYERS <ArrowLeft size={16} /></a></div>
+          ) : (() => {
+            const team = playerTeamFor(selectedPlayer)
+            const metadata = selectedPlayer.metadata ?? {}
+            const position = metadataText(metadata, 'position', 'playing_position')
+            const jersey = metadataText(metadata, 'jersey_number', 'jersey', 'number')
+            const height = metadataText(metadata, 'height', 'height_cm')
+            const source = selectedPlayer.external_url
+            return <article className="player-profile-detail">
+              <div className="player-profile-hero" style={{ '--player-accent': team?.accent ?? '#E94D91' } as React.CSSProperties}>
+                {selectedPlayer.image_url ? <img className="player-profile-photo" src={selectedPlayer.image_url} alt={`Portrait of ${selectedPlayer.title}`} /> : <div className="player-profile-photo player-profile-photo-placeholder"><CircleUserRound size={76} /></div>}
+                <div className="player-profile-heading"><span className="eyebrow">PLAYER PROFILE</span><h1>{selectedPlayer.title}</h1>{team && <p className="player-profile-team">{team.name}</p>}{selectedPlayer.summary && <p>{selectedPlayer.summary}</p>}</div>
+              </div>
+              <div className="player-profile-facts">
+                {position && <div><small>POSITION</small><strong>{position}</strong></div>}
+                {jersey && <div><small>JERSEY</small><strong>#{jersey.replace(/^#/, '')}</strong></div>}
+                {height && <div><small>HEIGHT</small><strong>{height}</strong></div>}
+                {metadataText(metadata, 'season') && <div><small>SEASON</small><strong>{metadataText(metadata, 'season')}</strong></div>}
+              </div>
+              {selectedPlayer.body && <section className="player-profile-bio"><h2>PLAYER NOTES</h2><p>{selectedPlayer.body}</p></section>}
+              <div className="player-profile-actions">{source && <a className="button button-primary" href={source} target="_blank" rel="noopener noreferrer">OFFICIAL / SOURCE LINK <ExternalLink size={16} /></a>}<a className="button button-outline" href={team ? `/teams/${team.key}` : '/teams'}>VIEW TEAM <ArrowUpRight size={16} /></a><a className="button button-outline" href="/match-center">MATCH CENTER <ArrowUpRight size={16} /></a></div>
+              <p className="match-source-note">Profile details reflect published REBISCOmmunity content. Verify current roster information with official team or league sources.</p>
+            </article>
+          })()}
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="player-directory-page">
+        <section className="player-directory-hero"><div className="site-container"><span className="eyebrow"><CircleUserRound size={15} /> THE PLAYER DIRECTORY</span><h1>MEET THE <span>PLAYERS.</span></h1><p>Explore published player profiles, team affiliations, and verified source links from across our three featured teams.</p><a className="button button-primary" href="/teams">EXPLORE THE TEAMS <ArrowUpRight size={16} /></a></div></section>
+        <section className="site-container player-directory-content">
+          <div className="player-directory-tools"><label className="search-field"><Search size={18} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search players, position, or team…" aria-label="Search player profiles" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={16} /></button>}</label><label className="player-team-filter"><span>TEAM</span><select value={teamFilter} onChange={event => setTeamFilter(event.target.value as PlayerTeamKey | 'all')}><option value="all">All teams</option>{PLAYER_TEAM_OPTIONS.map(team => <option key={team.key} value={team.key}>{team.name}</option>)}</select></label></div>
+          <p className="player-result-count" role="status">{loading ? 'Loading player profiles…' : `${filteredPlayers.length} published ${filteredPlayers.length === 1 ? 'profile' : 'profiles'}`}</p>
+          {loadError && <div className="notice notice-warning" role="status"><ShieldCheck size={20} /><p>{loadError}</p></div>}
+          {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading published profiles…</p></div> : filteredPlayers.length ? <div className="player-profile-grid">{filteredPlayers.map(player => { const team = playerTeamFor(player); const metadata = player.metadata ?? {}; return <article className="player-profile-card" key={player.id} style={{ '--player-accent': team?.accent ?? '#E94D91' } as React.CSSProperties}><a className="player-profile-card-link" href={`/players/${encodeURIComponent(player.slug)}`} aria-label={`View ${player.title} profile`}>{player.image_url ? <img className="player-profile-card-image" src={player.image_url} alt="" loading="lazy" /> : <div className="player-profile-card-image player-profile-photo-placeholder"><CircleUserRound size={54} /></div>}<div className="player-profile-card-copy"><span className="player-profile-card-team">{team?.short ?? 'PLAYER PROFILE'}</span><h2>{player.title}</h2><p>{player.summary || 'Open this published profile for player details.'}</p><div className="player-profile-card-meta">{metadataText(metadata, 'position', 'playing_position') && <span>{metadataText(metadata, 'position', 'playing_position')}</span>}{metadataText(metadata, 'jersey_number', 'jersey', 'number') && <span>#{metadataText(metadata, 'jersey_number', 'jersey', 'number').replace(/^#/, '')}</span>}</div><span className="read-link">VIEW PROFILE <ArrowUpRight size={15} /></span></div></a></article> })}</div> : <div className="section-empty-state"><div className="empty-icon"><CircleUserRound size={28} /></div><span className="eyebrow">PLAYER DIRECTORY</span><h2>{players.length ? 'NO MATCHING PROFILES' : 'PLAYER PROFILES COMING SOON'}</h2><p>{players.length ? 'Try another search or team filter.' : 'Publish player entries from Admin → Website Sections → Players. Use the title for the player name, the image for a portrait, and metadata for position, jersey number, height, and team.'}</p><a className="button button-primary" href="/admin">OPEN THE NEWSROOM <ArrowRight size={16} /></a></div>}
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
   if (path === '/admin') return <AdminApp />
   if (path === '/' || path === '/news') return <PublicHome />
+  if (path === '/players') return <PlayerProfilesPage />
+  if (path.startsWith('/players/')) {
+    const playerSlug = decodeURIComponent(path.slice('/players/'.length))
+    return playerSlug ? <PlayerProfilesPage slug={playerSlug} /> : <PlayerProfilesPage />
+  }
   if (path === '/match-center') return <MatchCenterPage />
   if (path.startsWith('/matches/')) {
     const slug = decodeURIComponent(path.slice('/matches/'.length))
