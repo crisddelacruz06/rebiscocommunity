@@ -398,144 +398,91 @@ function PublicHome() {
   return (
     <>
       <Header />
-      <main>
-        <section className="hero">
-          <div className="hero-grid" aria-hidden="true" />
-          <div className="site-container hero-layout">
-            <div className="hero-copy">
-              <div className="hero-kicker"><span className="live-dot" /> THE FAN DESK IS OPEN</div>
-              <h1>EVERY RALLY.<br />EVERY <span>STORY.</span></h1>
-              <p className="hero-description">Your home for the latest from the teams, players, and moments that make Philippine volleyball unforgettable.</p>
-              <a className="button button-primary" href="#latest">EXPLORE THE LATEST <ArrowDownRight size={18} /></a>
-              <div className="hero-footnote"><ShieldCheck size={15} /> FAN-DRIVEN. SOURCE-LED. VOLLEYBALL-OBSESSED.</div>
+      <main className="home-redesign">
+        <section className="home2-hero" aria-labelledby="home2-title">
+          <div className="home2-hero-pattern" aria-hidden="true" />
+          <div className="site-container home2-hero-layout">
+            <div className="home2-hero-copy">
+              <div className="home2-kicker"><span className="live-dot" /> YOUR VOLLEYBALL WORLD, IN ONE PLACE</div>
+              <h1 id="home2-title">EVERY POINT<br />HAS A <em>STORY.</em></h1>
+              <p>Match-day energy. Team updates. The moments fans can’t stop talking about. Welcome to the home court for every REBISCOmmunity fan.</p>
+              <div className="home2-hero-actions">
+                <a className="home2-button home2-button-pink" href="#latest">Catch the latest <ArrowDownRight size={18} /></a>
+                <a className="home2-button home2-button-light" href="/teams">Meet the teams <ArrowUpRight size={17} /></a>
+              </div>
+              <div className="home2-trust-line"><ShieldCheck size={16} /> Independent fan coverage · Source-led updates</div>
             </div>
-            <div className="hero-art" aria-label="Volleyball illustration">
-              <div className="hero-orbit orbit-one" />
-              <div className="hero-orbit orbit-two" />
-              <div className="hero-number">01</div>
-              <div className="hero-ball"><Volleyball size={174} strokeWidth={0.9} /></div>
-              <div className="hero-stamp"><span>THE</span><strong>GAME</strong><span>NEVER STOPS</span></div>
-              <div className="hero-side-note">PHILIPPINE VOLLEYBALL / FAN CULTURE / 01</div>
-            </div>
-          </div>
-          <div className="hero-bottom-line">
-            <div className="site-container hero-bottom-inner">
-              <span>ONE COMMUNITY. THREE TEAMS.</span>
-              <span>MADE FOR THE LOVE OF VOLLEYBALL <ArrowRight size={15} /></span>
+            <div className="home2-court-art" aria-label="Illustrated volleyball and team colors">
+              <div className="home2-court-ring home2-ring-one" />
+              <div className="home2-court-ring home2-ring-two" />
+              <div className="home2-court-label home2-label-top">THE FANS’ HOME COURT</div>
+              <div className="home2-volleyball"><Volleyball size={170} strokeWidth={1.15} /></div>
+              <div className="home2-court-sticker"><span>PLAY</span><strong>LOUD.</strong><span>CHEER PROUD.</span></div>
+              <span className="home2-art-number">01</span>
             </div>
           </div>
+          <div className="home2-hero-footer"><div className="site-container"><span>ONE COMMUNITY. THREE TEAMS.</span><span>SCROLL FOR THE GOOD STUFF <ArrowDownRight size={15} /></span></div></div>
         </section>
 
-        <section className="team-ribbon" id="teams" aria-label="Featured teams">
-          <div className="site-container team-ribbon-grid">
-            {TEAMS.slice(1).map((name, index) => (
-              <button className={`team-ribbon-item team-ribbon-${index}`} key={name} onClick={() => {
-                setTeam(name)
-                document.getElementById('latest')?.scrollIntoView({ behavior: 'smooth' })
-              }}>
-                <TeamMark team={name} />
-                <span><small>TEAM {String(index + 1).padStart(2, '0')}</small><strong>{name}</strong></span>
-                <ArrowUpRight size={18} className="team-arrow" />
-              </button>
-            ))}
+        <section className="home2-team-band" aria-labelledby="home2-teams-title">
+          <div className="site-container">
+            <div className="home2-mini-heading"><span>CHOOSE YOUR SIDE</span><h2 id="home2-teams-title">THREE TEAMS. <em>ONE COMMUNITY.</em></h2></div>
+            <div className="home2-team-grid">
+              <a className="home2-team-card home2-team-creamline" href="/teams">
+                <span className="home2-team-index">01 / THE COOL SMASHERS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
+                <strong>Creamline<br />Cool Smashers</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
+              </a>
+              <a className="home2-team-card home2-team-choco" href="/teams">
+                <span className="home2-team-index">02 / THE FLYING TITANS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
+                <strong>Choco Mucho<br />Flying Titans</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
+              </a>
+              <a className="home2-team-card home2-team-criss" href="/teams">
+                <span className="home2-team-index">03 / THE KING CRUNCHERS</span><span className="home2-team-ball"><Volleyball size={36} /></span>
+                <strong>Criss Cross<br />King Crunchers</strong><span className="home2-team-cta">Explore team <ArrowUpRight size={16} /></span>
+              </a>
+            </div>
           </div>
         </section>
 
         {homeHighlights.length > 0 && (
-          <section className="site-container published-home-section" aria-labelledby="home-highlights-title">
-            <div className="section-heading">
-              <div>
-                <span className="eyebrow"><Sparkles size={15} /> FROM THE COMMUNITY DESK</span>
-                <h2 id="home-highlights-title">FEATURED <span>HIGHLIGHTS.</span></h2>
-                <p className="section-subtitle">Updates selected by the REBISCOmmunity editors.</p>
-              </div>
-            </div>
-            <div className="published-content-grid">
-              {homeHighlights.map(item => (
-                <article className="published-content-card" key={item.id}>
-                  {item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <div className="published-content-art"><Volleyball size={48} /></div>}
-                  <div className="published-content-copy">
-                    {item.featured && <span className="status-pill status-featured">EDITOR'S PICK</span>}
-                    <h3>{item.title}</h3>
-                    {item.summary && <p>{item.summary}</p>}
-                    {item.body && <p>{item.body}</p>}
-                    {item.external_url && <a className="read-link" href={item.external_url} target="_blank" rel="noopener noreferrer">OPEN LINK <ExternalLink size={15} /></a>}
-                  </div>
+          <section className="home2-highlights site-container" aria-labelledby="home2-highlights-title">
+            <div className="home2-section-heading"><div><span className="home2-section-kicker"><Sparkles size={15} /> FROM THE COMMUNITY DESK</span><h2 id="home2-highlights-title">IN THE <em>SPOTLIGHT.</em></h2><p>Editor-selected updates from across our volleyball community.</p></div><a href="/news" className="home2-text-link">All the news <ArrowUpRight size={17} /></a></div>
+            <div className="home2-highlight-grid">
+              {homeHighlights.slice(0, 3).map((item, index) => (
+                <article className={`home2-highlight-card home2-highlight-${index}`} key={item.id}>
+                  <div className="home2-highlight-media">{item.image_url ? <img src={item.image_url} alt="" loading="lazy" /> : <div className="home2-highlight-placeholder"><Volleyball size={54} /><span>REBISCOmmunity</span></div>}{item.featured && <span className="home2-pick"><Sparkles size={12} /> EDITOR’S PICK</span>}</div>
+                  <div className="home2-highlight-copy"><span className="home2-card-eyebrow">COMMUNITY UPDATE</span><h3>{item.title}</h3>{item.summary && <p>{item.summary}</p>}{item.body && <p>{item.body}</p>}{item.external_url && <a className="home2-text-link" href={item.external_url} target="_blank" rel="noopener noreferrer">Read more <ExternalLink size={15} /></a>}</div>
                 </article>
               ))}
             </div>
           </section>
         )}
 
-        <section className="news-section site-container" id="latest">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow"><Sparkles size={15} /> THE LATEST</span>
-              <h2>THE <span>FEED.</span></h2>
-              <p className="section-subtitle">News, match reports, and stories worth sharing.</p>
+        <section className="home2-news" id="latest" aria-labelledby="home2-news-title">
+          <div className="site-container">
+            <div className="home2-section-heading home2-news-heading"><div><span className="home2-section-kicker"><span className="live-dot" /> FRESH FROM THE FAN DESK</span><h2 id="home2-news-title">THE LATEST <em>BUZZ.</em></h2><p>News, match reports, announcements, and stories worth sharing.</p></div><div className="home2-story-total"><strong>{String(filtered.length).padStart(2, '0')}</strong><span>STORIES<br />IN THE FEED</span></div></div>
+            <div className="home2-feed-tools">
+              <label className="search-field"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search stories or teams…" aria-label="Search stories" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={16} /></button>}</label>
+              <label className="select-field"><Filter size={16} /><select value={team} onChange={(event) => setTeam(event.target.value)} aria-label="Filter by team">{TEAMS.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></label>
+              <label className="select-field"><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter by category">{['All Stories', 'News', 'Match Report', 'Announcement', 'Feature'].map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></label>
             </div>
-            <div className="feed-count"><span>{String(filtered.length).padStart(2, '0')}</span> STORIES FOUND</div>
-          </div>
-
-          <div className="feed-controls">
-            <label className="search-field">
-              <Search size={18} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search stories, teams..." aria-label="Search stories" />
-              {search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={16} /></button>}
-            </label>
-            <label className="select-field">
-              <Filter size={16} />
-              <select value={team} onChange={(event) => setTeam(event.target.value)} aria-label="Filter by team">
-                {TEAMS.map((item) => <option key={item}>{item}</option>)}
-              </select>
-              <ChevronDown size={15} />
-            </label>
-            <label className="select-field category-select">
-              <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter by category">
-                {['All Stories', 'News', 'Match Report', 'Announcement', 'Feature'].map((item) => <option key={item}>{item}</option>)}
-              </select>
-              <ChevronDown size={15} />
-            </label>
-          </div>
-
-          {error && (
-            <div className="notice notice-warning" role="status">
-              <ShieldCheck size={21} />
-              <div><strong>EDITORIAL FEED NOT CONNECTED</strong><p>{error}</p><a href="/admin">Open the editor setup <ArrowRight size={14} /></a></div>
-            </div>
-          )}
-
-          {loading ? (
-            <div className="empty-state"><span className="loading-spinner" /><p>Loading the fan desk…</p></div>
-          ) : !error && filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><Newspaper size={30} /></div>
-              <span className="eyebrow">THE NEXT STORY STARTS HERE</span>
-              <h3>{articles.length ? 'No stories match your filters.' : 'The feed is warming up.'}</h3>
-              <p>{articles.length ? 'Try another team, category, or search term.' : 'No articles have been published yet. Once your editor publishes a verified update, it will appear here.'}</p>
-              {articles.length > 0 && <button className="button button-outline" onClick={() => { setTeam('All Teams'); setCategory('All Stories'); setSearch('') }}>CLEAR FILTERS</button>}
-            </div>
-          ) : !error && featured ? (
-            <>
-              <div className="featured-story-label"><span className="live-dot" /> LATEST PUBLISHED STORY</div>
-              <ArticleCard article={featured} featured onOpen={openArticle} />
-              {remaining.length > 0 && (
-                <div className="story-grid">
-                  {remaining.map((article) => <ArticleCard key={article.id} article={article} onOpen={openArticle} />)}
-                </div>
-              )}
-            </>
-          ) : null}
-        </section>
-
-        <section className="manifesto">
-          <div className="site-container manifesto-inner">
-            <div className="manifesto-mark"><Trophy size={31} /></div>
-            <div><span className="eyebrow">MORE THAN A SCORELINE</span><h2>THE GAME IS BETTER<br />WHEN WE <span>SHARE IT.</span></h2></div>
-            <p>From game-day energy to the stories between matches, REBISCOmmunity brings fans together around the teams they love.</p>
-            <a href="/admin" className="manifesto-link">JOIN THE NEWSROOM <ArrowUpRight size={17} /></a>
+            {error && <div className="notice notice-warning" role="status"><ShieldCheck size={21} /><div><strong>EDITORIAL FEED NOT CONNECTED</strong><p>{error}</p><a href="/admin">Open the editor setup <ArrowRight size={14} /></a></div></div>}
+            {loading ? <div className="empty-state"><span className="loading-spinner" /><p>Loading the fan desk…</p></div> : !error && filtered.length === 0 ? (
+              <div className="home2-empty"><div className="empty-icon"><Newspaper size={28} /></div><span className="home2-section-kicker">THE NEXT STORY STARTS HERE</span><h3>{articles.length ? 'No stories match your filters.' : 'The feed is warming up.'}</h3><p>{articles.length ? 'Try another team, category, or search term.' : 'When your editor publishes a verified update, it will appear here.'}</p>{articles.length > 0 && <button className="home2-button home2-button-dark" onClick={() => { setTeam('All Teams'); setCategory('All Stories'); setSearch('') }}>Clear filters <X size={16} /></button>}</div>
+            ) : !error && featured ? (
+              <>
+                <div className="home2-featured-label"><span className="live-dot" /> LATEST PUBLISHED STORY</div>
+                <ArticleCard article={featured} featured onOpen={openArticle} />
+                {remaining.length > 0 && <div className="story-grid">{remaining.slice(0, 6).map((article) => <ArticleCard key={article.id} article={article} onOpen={openArticle} />)}</div>}
+                {filtered.length > 7 && <div className="home2-more-news"><a className="home2-button home2-button-dark" href="/news">Explore all stories <ArrowRight size={17} /></a></div>}
+              </>
+            ) : null}
           </div>
         </section>
+
+        <section className="home2-explore" aria-labelledby="home2-explore-title"><div className="site-container"><div className="home2-explore-intro"><span className="home2-section-kicker">YOUR NEXT STOP</span><h2 id="home2-explore-title">MORE WAYS TO<br /><em>LIVE THE GAME.</em></h2><p>From match-day details to player stories, keep your volleyball tabs open in one place.</p></div><div className="home2-explore-links"><a href="/schedule"><span className="home2-explore-icon"><Trophy size={22} /></span><span><strong>Schedule & standings</strong><small>Keep up with the competition</small></span><ArrowUpRight size={18} /></a><a href="/players"><span className="home2-explore-icon"><CircleUserRound size={22} /></span><span><strong>Players & stats</strong><small>Meet the athletes behind the plays</small></span><ArrowUpRight size={18} /></a><a href="/recaps"><span className="home2-explore-icon"><Newspaper size={22} /></span><span><strong>Recaps & highlights</strong><small>Catch up on the action</small></span><ArrowUpRight size={18} /></a><a href="/videos"><span className="home2-explore-icon"><Eye size={22} /></span><span><strong>Videos & photos</strong><small>Relive the moments</small></span><ArrowUpRight size={18} /></a></div></div></section>
+
+        <section className="home2-community-cta"><div className="site-container home2-cta-inner"><div className="home2-cta-ball"><Volleyball size={46} /></div><div><span className="home2-section-kicker">MORE THAN A SCORELINE</span><h2>THE GAME IS BETTER<br />WHEN WE <em>SHARE IT.</em></h2><p>For the fans who live every rally. Welcome to your community.</p></div><a className="home2-button home2-button-pink" href="/news">Back to the buzz <ArrowUpRight size={17} /></a></div></section>
       </main>
       <Footer />
       {selected && <ArticleReader article={selected} onClose={() => setSelected(null)} />}
