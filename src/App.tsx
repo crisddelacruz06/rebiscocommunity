@@ -713,6 +713,12 @@ function ArticleEditor({
       setValidationError('Use a URL slug with lowercase letters, numbers, and hyphens only.')
       return
     }
+    if (form.status === 'published') {
+      const confirmed = window.confirm(
+        `Publish “${form.title.trim()}” now? It may become visible to public visitors. Confirm that the details and source have been checked.`,
+      )
+      if (!confirmed) return
+    }
     await onSave(form)
   }
 
@@ -891,15 +897,55 @@ function SectionContentEditor({
       setValidationError('Image and external links must be valid HTTP or HTTPS URLs.')
       return
     }
+    let metadata: Record<string, unknown>
     try {
-      const metadata = JSON.parse(form.metadata || '{}')
-      if (!metadata || Array.isArray(metadata) || typeof metadata !== 'object') {
+      const parsed: unknown = JSON.parse(form.metadata || '{}')
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
         setValidationError('Metadata must be a JSON object, for example: {"season":"2026"}.')
         return
       }
+      metadata = parsed as Record<string, unknown>
     } catch {
       setValidationError('Metadata must be valid JSON, for example: {"season":"2026"}.')
       return
+    }
+
+    const requiredBySection: Partial<Record<ContentSection, string[]>> = {
+      schedule: ['match_date', 'home_team', 'away_team', 'competition', 'source_url'],
+      standings: ['rank', 'team', 'played', 'won', 'lost', 'points', 'competition', 'source_url'],
+      stats: ['metric', 'value', 'source_url'],
+      players: ['player_name', 'team', 'position', 'official_url'],
+      recaps: ['match_date', 'team', 'opponent', 'score', 'source_url'],
+      tickets: ['event_date', 'organizer', 'source_url'],
+    }
+    if (form.status === 'published') {
+      const missing = (requiredBySection[form.section] ?? []).filter(key => {
+        const value = metadata[key]
+        return value === undefined || value === null || String(value).trim() === ''
+      })
+      if (missing.length > 0) {
+        setValidationError(`Before publishing this ${form.section} item, complete: ${missing.join(', ')}.`)
+        return
+      }
+      const numericKeys = form.section === 'standings'
+        ? ['rank', 'played', 'won', 'lost', 'points']
+        : form.section === 'stats' ? ['value'] : []
+      for (const key of numericKeys) {
+        const value = metadata[key]
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+          setValidationError(`${key} must be a valid non-negative number before publishing.`)
+          return
+        }
+      }
+      const sourceUrl = metadata.source_url ?? metadata.official_url
+      if (sourceUrl && (typeof sourceUrl !== 'string' || !isValidHttpUrl(sourceUrl) || !sourceUrl.trim())) {
+        setValidationError('The source URL must be a valid HTTP or HTTPS URL before publishing.')
+        return
+      }
+      const confirmed = window.confirm(
+        `Publish “${form.title.trim()}” in ${form.section}? It may become visible to public visitors. Confirm that the details and source have been checked.`,
+      )
+      if (!confirmed) return
     }
     await onSave(form)
   }
