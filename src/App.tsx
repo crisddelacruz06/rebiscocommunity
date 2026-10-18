@@ -726,6 +726,87 @@ function ArticleEditor({
   )
 }
 
+type MetadataField = { key: string; label: string; type?: 'text' | 'date' | 'time' | 'number' | 'url'; placeholder?: string }
+
+const SECTION_FORM_FIELDS: Partial<Record<ContentSection, MetadataField[]>> = {
+  home: [
+    { key: 'kicker', label: 'Kicker / label', placeholder: 'e.g. COMMUNITY SPOTLIGHT' },
+    { key: 'cta_label', label: 'Button label', placeholder: 'e.g. READ THE STORY' },
+  ],
+  teams: [
+    { key: 'team_name', label: 'Team name', placeholder: 'Full team name' },
+    { key: 'nickname', label: 'Nickname', placeholder: 'Team nickname' },
+    { key: 'league', label: 'League / competition' },
+    { key: 'season', label: 'Season' },
+    { key: 'official_url', label: 'Official team URL', type: 'url' },
+  ],
+  players: [
+    { key: 'player_name', label: 'Player name' }, { key: 'team', label: 'Team' },
+    { key: 'position', label: 'Position' }, { key: 'jersey_number', label: 'Jersey number', type: 'number' },
+    { key: 'nationality', label: 'Nationality' }, { key: 'season', label: 'Season' },
+    { key: 'official_url', label: 'Official profile / source URL', type: 'url' },
+  ],
+  schedule: [
+    { key: 'match_date', label: 'Match date', type: 'date' }, { key: 'start_time', label: 'Start time', type: 'time' },
+    { key: 'home_team', label: 'Home team' }, { key: 'away_team', label: 'Away team' },
+    { key: 'opponent', label: 'Opponent (optional)' }, { key: 'venue', label: 'Venue' },
+    { key: 'competition', label: 'Competition' }, { key: 'season', label: 'Season' },
+    { key: 'status', label: 'Match status', placeholder: 'Scheduled / Final / Postponed' },
+    { key: 'source_url', label: 'Fixture source URL', type: 'url' },
+  ],
+  standings: [
+    { key: 'rank', label: 'Rank', type: 'number' }, { key: 'team', label: 'Team' },
+    { key: 'played', label: 'Matches played', type: 'number' }, { key: 'won', label: 'Wins', type: 'number' },
+    { key: 'lost', label: 'Losses', type: 'number' }, { key: 'points', label: 'Points', type: 'number' },
+    { key: 'sets_won', label: 'Sets won', type: 'number' }, { key: 'sets_lost', label: 'Sets lost', type: 'number' },
+    { key: 'competition', label: 'Competition' }, { key: 'season', label: 'Season' },
+    { key: 'source_url', label: 'Standings source URL', type: 'url' },
+  ],
+  stats: [
+    { key: 'player', label: 'Player (optional)' }, { key: 'team', label: 'Team (optional)' },
+    { key: 'metric', label: 'Statistic / metric' }, { key: 'value', label: 'Value', type: 'number' },
+    { key: 'unit', label: 'Unit', placeholder: 'e.g. points, %, aces' }, { key: 'season', label: 'Season' },
+    { key: 'competition', label: 'Competition' }, { key: 'source_url', label: 'Statistics source URL', type: 'url' },
+  ],
+  recaps: [
+    { key: 'match_date', label: 'Match date', type: 'date' }, { key: 'team', label: 'Team' },
+    { key: 'opponent', label: 'Opponent' }, { key: 'score', label: 'Final score' },
+    { key: 'competition', label: 'Competition' }, { key: 'season', label: 'Season' },
+    { key: 'source_url', label: 'Match report source URL', type: 'url' },
+  ],
+  live: [
+    { key: 'match', label: 'Match' }, { key: 'status', label: 'Coverage status', placeholder: 'Only use LIVE when verified' },
+    { key: 'start_time', label: 'Start time', type: 'time' }, { key: 'competition', label: 'Competition' },
+    { key: 'source_url', label: 'Official live coverage URL', type: 'url' },
+  ],
+  videos: [
+    { key: 'video_type', label: 'Video type' }, { key: 'duration', label: 'Duration' },
+    { key: 'team', label: 'Team' }, { key: 'published_date', label: 'Published date', type: 'date' },
+    { key: 'credit', label: 'Source / credit' }, { key: 'source_url', label: 'Video URL', type: 'url' },
+  ],
+  photos: [
+    { key: 'event', label: 'Event' }, { key: 'photo_date', label: 'Photo date', type: 'date' },
+    { key: 'photographer', label: 'Photographer' }, { key: 'credit', label: 'Photo credit' },
+    { key: 'permission', label: 'Permission / usage note' },
+  ],
+  tickets: [
+    { key: 'event_date', label: 'Event date', type: 'date' }, { key: 'venue', label: 'Venue' },
+    { key: 'organizer', label: 'Organizer' }, { key: 'ticket_status', label: 'Ticket status' },
+    { key: 'source_url', label: 'Official ticket URL', type: 'url' },
+  ],
+}
+
+function readMetadataObject(raw: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(raw || '{}')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {}
+  } catch {
+    return {}
+  }
+}
+
 function SectionContentEditor({
   item,
   saving,
@@ -754,6 +835,20 @@ function SectionContentEditor({
   } : EMPTY_SECTION_FORM)
   const [slugEdited, setSlugEdited] = useState(Boolean(item))
   const [validationError, setValidationError] = useState('')
+  const metadataValues = readMetadataObject(form.metadata)
+  const metadataFields = SECTION_FORM_FIELDS[form.section] ?? []
+
+  function changeMetadata(key: string, value: string, type?: MetadataField['type']) {
+    const next = { ...readMetadataObject(form.metadata) }
+    if (value.trim() === '') {
+      delete next[key]
+    } else if (type === 'number' && Number.isFinite(Number(value))) {
+      next[key] = Number(value)
+    } else {
+      next[key] = value
+    }
+    change('metadata', JSON.stringify(next, null, 2))
+  }
 
   function change<K extends keyof SectionContentForm>(key: K, value: SectionContentForm[K]) {
     setForm(previous => ({
@@ -812,7 +907,35 @@ function SectionContentEditor({
             <label>Image URL<input type="url" value={form.image_url} onChange={event => change('image_url', event.target.value)} placeholder="https://..." /></label>
             <label>External / official URL<input type="url" value={form.external_url} onChange={event => change('external_url', event.target.value)} placeholder="https://..." /></label>
           </div>
-          <label>Metadata (JSON object)<textarea rows={4} value={form.metadata} onChange={event => change('metadata', event.target.value)} spellCheck={false} placeholder={'{"season":"2026","venue":"..."}'} /><small>Optional structured fields for players, matches, standings, or statistics.</small></label>
+          {metadataFields.length > 0 && (
+            <section className="metadata-fields-panel" aria-labelledby="metadata-fields-title">
+              <div className="metadata-fields-heading">
+                <h3 id="metadata-fields-title">{form.section === 'schedule' ? 'MATCH DETAILS' : form.section === 'standings' ? 'STANDINGS DETAILS' : form.section === 'players' ? 'PLAYER DETAILS' : form.section === 'stats' ? 'STATISTICS DETAILS' : 'SECTION DETAILS'}</h3>
+                <p>These fields save into the existing metadata JSON column.</p>
+              </div>
+              <div className="metadata-fields-grid">
+                {metadataFields.map(field => (
+                  <label key={field.key}>{field.label}
+                    <input
+                      type={field.type ?? 'text'}
+                      min={field.type === 'number' ? 0 : undefined}
+                      step={field.type === 'number' ? 'any' : undefined}
+                      value={displayMetadataValue(metadataValues[field.key])}
+                      onChange={event => changeMetadata(field.key, event.target.value, field.type)}
+                      placeholder={field.placeholder ?? ''}
+                    />
+                  </label>
+                ))}
+              </div>
+              {form.section === 'live' && <p className="metadata-fields-note">Only publish a live status when you have confirmed that official coverage is currently available.</p>}
+              {form.section === 'tickets' && <p className="metadata-fields-note">Link to the organizer's official ticket page. Do not collect payment information on this site.</p>}
+            </section>
+          )}
+          <details className="metadata-advanced">
+            <summary>Advanced metadata (JSON)</summary>
+            <label>Metadata object<textarea rows={6} value={form.metadata} onChange={event => change('metadata', event.target.value)} spellCheck={false} placeholder={'{"season":"2026","venue":"..."}'} /></label>
+            <small>Advanced editors only. This must remain a valid JSON object. Fields above update this JSON automatically.</small>
+          </details>
           <div className="form-two-col">
             <label>Display order<input type="number" step="1" value={form.sort_order} onChange={event => change('sort_order', event.target.value)} /></label>
             <label>Publication status<select value={form.status} onChange={event => change('status', event.target.value as SectionContentForm['status'])}><option value="draft">Draft — private</option><option value="published">Published — public</option></select></label>
